@@ -5,8 +5,9 @@ PROJECT(AnglePicture)
 
 find_package(VTK REQUIRED)
 include(${VTK_USE_FILE})
-
-add_executable(AnglePicture MACOSX_BUNDLE AnglePicture)
+set(Srcs AnglePicture.cpp ONB.cpp)
+set(Hdrs ONB.h Vector3.h)
+add_executable(AnglePicture MACOSX_BUNDLE ${Srcs} ${Hdrs})
 
 if(VTK_LIBRARIES)
   target_link_libraries(AnglePicture ${VTK_LIBRARIES})
