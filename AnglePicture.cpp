@@ -27,9 +27,9 @@ void computeOblique(vtkImageData* original,Vector3 direction,Vector3 fixedPoint,
 	Vector3 W = onb.w();
 
 	static double axialElements[16] = {
-		U.x(),V.x(),W.x(),fixedPoint.x(),
-		U.y(),V.y(),W.y(),fixedPoint.y(),
-		U.z(),V.z(),W.z(),fixedPoint.z(),
+		V.x(),W.x(),U.x(),fixedPoint.x(),
+		V.y(),W.y(),U.y(),fixedPoint.y(),
+		V.z(),W.z(),U.z(),fixedPoint.z(),
 		0,    0,    0,    1
 	};
 
