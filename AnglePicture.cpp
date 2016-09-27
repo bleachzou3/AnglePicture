@@ -13,6 +13,10 @@
 #include "Vector3.h"
 #include "ONB.h"
 #include <vtkDICOMImageReader.h>
+/**
+*@param original 原始的图像切片, direction 中心线的方向, fixedPoint图像切片中心经过的点,res切片图像
+*
+*/
 void computeOblique(vtkImageData* original,Vector3 direction,Vector3 fixedPoint,vtkImageData*res)
 {
 	
@@ -64,7 +68,6 @@ int main(int argc, char* argv[])
   reader->Update();
   vtkImageData* original = reader->GetOutput();
   vtkSmartPointer<vtkImageData> data = vtkSmartPointer<vtkImageData>::New();
-
   //centerline
   Vector3 direction(2,3,1);
 
