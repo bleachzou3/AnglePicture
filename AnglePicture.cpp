@@ -13,8 +13,11 @@
 #include "Vector3.h"
 #include "ONB.h"
 #include <vtkDICOMImageReader.h>
+#include <vtkXMLImageDataReader.h>
+#include <vtkXMLPolyDataReader.h>
+#include <vtkPolyDataMapper.h>
 /**
-*@param original 原始的图像切片, direction 中心线的方向, fixedPoint图像切片中心经过的点,res切片图像
+*@param original 原始的图像切片, direction 中心线的方向, fixedPoint图像切片中心经过的点
 *
 */
 void computeOblique(vtkImageData* original,Vector3 direction,Vector3 fixedPoint,vtkImageData*res)
@@ -53,37 +56,40 @@ void computeOblique(vtkImageData* original,Vector3 direction,Vector3 fixedPoint,
 int main(int argc, char* argv[])
 {
 
+   // Setup render window
+  vtkSmartPointer<vtkRenderWindow> window = 
+    vtkSmartPointer<vtkRenderWindow>::New();
+    // Setup render window interactor
+  vtkSmartPointer<vtkRenderWindowInteractor> interactor = 
+    vtkSmartPointer<vtkRenderWindowInteractor>::New();
+  interactor->SetRenderWindow(window);
+  double tangentPicture[4] = {0.0,0.0,0.33,0.5};
+  double modelRegin[4]= {0.33,0.5,1.0,1.0};
 
-  // Read the image
+
   /*
-  vtkSmartPointer<vtkJPEGReader> reader = 
-      vtkSmartPointer<vtkJPEGReader>::New();
-  reader->SetFileName(inputFilename.c_str());
-  reader->Update();
-  */
-  // Create an actor
-  //prepare for reading picture
   vtkSmartPointer<vtkDICOMImageReader> reader = vtkSmartPointer<vtkDICOMImageReader>::New();
   reader->SetDirectoryName("E://patientData//WU_AMAO");
+  reader->Update();
+  */
+   vtkSmartPointer<vtkXMLImageDataReader> reader =
+    vtkSmartPointer<vtkXMLImageDataReader>::New();
+  reader->SetFileName("E:\\image_volume_voi.vti");
   reader->Update();
   vtkImageData* original = reader->GetOutput();
   vtkSmartPointer<vtkImageData> data = vtkSmartPointer<vtkImageData>::New();
   //centerline
   Vector3 direction(2,3,1);
-
   int extent[6];
   double spacing[3];
   double origin[3];
-
   original->GetExtent(extent);
   original->GetSpacing(spacing);
   original->GetOrigin(origin);
-
   double center[3];
   center[0] = origin[0] + spacing[0] * 0.5 * (extent[0] + extent[1]);
   center[1] = origin[1] + spacing[1] * 0.5 * (extent[2] + extent[3]);
   center[2] = origin[2] + spacing[2] * 0.5 * (extent[4] + extent[5]);
-
   Vector3 fixedPoint(center[0],center[1],center[2]);
 
   computeOblique(original,direction,fixedPoint,data);
@@ -96,40 +102,65 @@ int main(int argc, char* argv[])
   data->GetSpacing(spacingr);
   data->GetOrigin(originr);
 
-
-
-
-
-
-
-
-  vtkSmartPointer<vtkImageActor> actor = 
-    vtkSmartPointer<vtkImageActor>::New();
-  actor->GetMapper()->SetInputData(data);
-  actor->Update();
   // Setup renderer
   vtkSmartPointer<vtkRenderer> renderer = 
     vtkSmartPointer<vtkRenderer>::New();
+  renderer->SetViewport(tangentPicture);
+   renderer->SetBackground(0.5,0.5,0.5);
+     vtkSmartPointer<vtkImageActor> actor = 
+    vtkSmartPointer<vtkImageActor>::New();
+	   actor->GetMapper()->SetInputData(data);
   renderer->AddActor(actor);
-  renderer->ResetCamera();
-
-  // Setup render window
-  vtkSmartPointer<vtkRenderWindow> window = 
-    vtkSmartPointer<vtkRenderWindow>::New();
+  renderer->ResetCamera();  
   window->AddRenderer(renderer);
+  renderer->SetViewPoint(tangentPicture);
+  actor->Update();
 
-  // Setup render window interactor
-  vtkSmartPointer<vtkRenderWindowInteractor> interactor = 
-    vtkSmartPointer<vtkRenderWindowInteractor>::New();
-  interactor->SetRenderWindow(window);
 
-  // Setup interactor style (this is what implements the zooming, panning and brightness adjustment functionality)
-  vtkSmartPointer<vtkInteractorStyleImage> style = 
-    vtkSmartPointer<vtkInteractorStyleImage>::New();
-  interactor->SetInteractorStyle(style);
-  
-  // Render and start interaction
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    // Read all the data from the file
+  vtkSmartPointer<vtkXMLPolyDataReader> readerModel =
+    vtkSmartPointer<vtkXMLPolyDataReader>::New();
+  readerModel->SetFileName("E:\\model0927.vtp");
+  readerModel->Update();
+ 
+  // Visualize
+  vtkSmartPointer<vtkPolyDataMapper> mapper =
+    vtkSmartPointer<vtkPolyDataMapper>::New();
+  mapper->SetInputConnection(readerModel->GetOutputPort());
+ 
+  vtkSmartPointer<vtkActor> actorModel =
+    vtkSmartPointer<vtkActor>::New();
+  actorModel->SetMapper(mapper);
+ 
+  vtkSmartPointer<vtkRenderer> rendererModel =
+    vtkSmartPointer<vtkRenderer>::New();
+
+  rendererModel->SetViewport(modelRegin);
+  rendererModel->AddActor(actorModel);
+  window->AddRenderer(rendererModel);
+
   interactor->Start();
-
   return EXIT_SUCCESS;
 }
