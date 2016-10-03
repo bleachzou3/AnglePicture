@@ -16,6 +16,7 @@
 #include <vtkXMLImageDataReader.h>
 #include <vtkXMLPolyDataReader.h>
 #include <vtkPolyDataMapper.h>
+#include <vtkProperty.h>
 /**
 *@param original 原始的图像切片, direction 中心线的方向, fixedPoint图像切片中心经过的点
 *
@@ -142,23 +143,37 @@ int main(int argc, char* argv[])
     // Read all the data from the file
   vtkSmartPointer<vtkXMLPolyDataReader> readerModel =
     vtkSmartPointer<vtkXMLPolyDataReader>::New();
-  readerModel->SetFileName("E:\\model0927.vtp");
+  readerModel->SetFileName("E:\\model0927smooth.vtp");
   readerModel->Update();
- 
+  vtkSmartPointer<vtkXMLPolyDataReader> centerlineModelReader = vtkSmartPointer<vtkXMLPolyDataReader>::New();
+  centerlineModelReader->SetFileName("E:\\model0927centerline.vtp");
+  centerlineModelReader->Update();
+
+
   // Visualize
   vtkSmartPointer<vtkPolyDataMapper> mapper =
     vtkSmartPointer<vtkPolyDataMapper>::New();
   mapper->SetInputConnection(readerModel->GetOutputPort());
+  vtkSmartPointer<vtkPolyDataMapper> centerlineMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+  centerlineMapper->SetInputConnection(centerlineModelReader->GetOutputPort());
+	
  
   vtkSmartPointer<vtkActor> actorModel =
     vtkSmartPointer<vtkActor>::New();
+  actorModel->GetProperty()->SetOpacity(0.1);
+  actorModel->GetProperty()->SetColor(0.5,0.5,0.5);
   actorModel->SetMapper(mapper);
+
+  vtkSmartPointer<vtkActor> centerlineModel = vtkSmartPointer<vtkActor>::New();
+  centerlineModel->SetMapper(centerlineMapper);
  
   vtkSmartPointer<vtkRenderer> rendererModel =
     vtkSmartPointer<vtkRenderer>::New();
-
+  double back[3] = {1.0,1.0,1.0};
+  rendererModel->SetBackground(back);
   rendererModel->SetViewport(modelRegin);
   rendererModel->AddActor(actorModel);
+  rendererModel->AddActor(centerlineModel);
   window->AddRenderer(rendererModel);
 
   interactor->Start();
