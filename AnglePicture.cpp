@@ -17,6 +17,10 @@
 #include <vtkXMLPolyDataReader.h>
 #include <vtkPolyDataMapper.h>
 #include <vtkProperty.h>
+#include <vtkPolyData.h>
+#include <vtkPointData.h>
+#include <vtkFloatArray.h>
+#include <vtkMath.h>
 /**
 *@param original 原始的图像切片, direction 中心线的方向, fixedPoint图像切片中心经过的点
 *
@@ -53,6 +57,86 @@ void computeOblique(vtkImageData* original,Vector3 direction,Vector3 fixedPoint,
 
 	res->DeepCopy(reslice->GetOutput());
 }
+
+/**
+*计算每个切面的法向量obliqueNormal
+* 计算左右相邻的两个点，哪个点近就用哪个
+*/
+
+
+void computeNormalByPoints(vtkPolyData * data)
+{
+	vtkDataArray* normals = data->GetPointData()->GetArray("obliqueNormal");
+
+	if(normals != 0)
+	{
+		return;
+	}
+	int N = data->GetNumberOfPoints();
+	int line = data->GetNumberOfLines();
+	if(N < 3)
+	{
+		return;
+	}
+	vtkSmartPointer<vtkFloatArray> newNormals = vtkSmartPointer<vtkFloatArray>::New();
+	newNormals->SetName("obliqueNormal");
+
+	newNormals->SetNumberOfComponents(3);
+	newNormals->SetNumberOfTuples(N);
+
+	double firstNode[3]; 
+	data->GetPoint(0,firstNode);
+	double secondNode[3];
+	data->GetPoint(1,secondNode);
+	newNormals->SetComponent(0,0,firstNode[0] - secondNode[0]);
+	newNormals->SetComponent(0,1,firstNode[1] - secondNode[1]);
+	newNormals->SetComponent(0,2,firstNode[2] - secondNode[2]);
+
+	for(int i = 1; i < N - 1; i++)
+	{
+		double currentNode[3];
+		data->GetPoint(i,currentNode);
+		double previousNode[3];
+		double nextNode[3] ;
+		data->GetPoint(i - 1,previousNode);
+		data->GetPoint(i + 1,nextNode);
+
+		double prevCurr = sqrt(vtkMath::Distance2BetweenPoints(currentNode,previousNode));
+		double nextCurr = sqrt(vtkMath::Distance2BetweenPoints(currentNode,nextNode));
+
+		double curNormal[3];
+		if(prevCurr < nextCurr)
+		{
+			curNormal[0] = previousNode[0] - currentNode[0];
+			curNormal[1] = previousNode[1] - currentNode[1];
+			curNormal[2] = previousNode[2] - currentNode[2];
+		}else
+		{
+			curNormal[0] = currentNode[0] - nextNode[0];
+			curNormal[1] = currentNode[1] - nextNode[1];
+			curNormal[2] = currentNode[2] - nextNode[2];
+		}
+		newNormals->SetComponent(i,0,curNormal[0]);
+		newNormals->SetComponent(i,1,curNormal[1]);
+	    newNormals->SetComponent(i,2,curNormal[2]);
+	}
+
+	double* rFirstNode = data->GetPoint(N - 1);
+	double* rSecondNode = data->GetPoint(N - 2);
+
+    newNormals->SetComponent(N - 1,0,firstNode[0] - secondNode[0]);
+	newNormals->SetComponent(N - 1,1,firstNode[1] - secondNode[1]);
+	newNormals->SetComponent(N - 1,2,firstNode[2] - secondNode[2]);
+
+	data->GetPointData()->AddArray(newNormals);
+
+	
+}
+
+/**
+*根据图元进行计算
+*/
+
 
 int main(int argc, char* argv[])
 {
@@ -148,15 +232,16 @@ int main(int argc, char* argv[])
   vtkSmartPointer<vtkXMLPolyDataReader> centerlineModelReader = vtkSmartPointer<vtkXMLPolyDataReader>::New();
   centerlineModelReader->SetFileName("E:\\model0927centerline.vtp");
   centerlineModelReader->Update();
-
+  vtkPolyData* centerline = centerlineModelReader->GetOutput();
+  computeNormalByPoints(centerline);
 
   // Visualize
   vtkSmartPointer<vtkPolyDataMapper> mapper =
     vtkSmartPointer<vtkPolyDataMapper>::New();
   mapper->SetInputConnection(readerModel->GetOutputPort());
   vtkSmartPointer<vtkPolyDataMapper> centerlineMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
-  centerlineMapper->SetInputConnection(centerlineModelReader->GetOutputPort());
-	
+ //centerlineMapper->SetInputConnection(centerlineModelReader->GetOutputPort());
+  centerlineMapper->SetInputData(centerline);
  
   vtkSmartPointer<vtkActor> actorModel =
     vtkSmartPointer<vtkActor>::New();
