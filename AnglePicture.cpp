@@ -21,6 +21,7 @@
 #include <vtkPointData.h>
 #include <vtkFloatArray.h>
 #include <vtkMath.h>
+#include "InteractorStyleRollBall.h"
 /**
 *@param original 原始的图像切片, direction 中心线的方向, fixedPoint图像切片中心经过的点
 *
@@ -148,8 +149,13 @@ int main(int argc, char* argv[])
   vtkSmartPointer<vtkRenderWindowInteractor> interactor = 
     vtkSmartPointer<vtkRenderWindowInteractor>::New();
   interactor->SetRenderWindow(window);
+  vtkSmartPointer<InteractorStyleRollBall> interactorStyle = vtkSmartPointer<InteractorStyleRollBall>::New();
+  interactor->SetInteractorStyle(interactorStyle);
+
+  
   double tangentPicture[4] = {0.0,0.0,0.33,0.5};
   double modelRegin[4]= {0.33,0.5,1.0,1.0};
+  double centerlineOnly[4] = {0.0,0.5,0.33,1};
 
 
   /*
@@ -157,6 +163,7 @@ int main(int argc, char* argv[])
   reader->SetDirectoryName("E://patientData//WU_AMAO");
   reader->Update();
   */
+  //读取原始的图像切片数据
    vtkSmartPointer<vtkXMLImageDataReader> reader =
     vtkSmartPointer<vtkXMLImageDataReader>::New();
   reader->SetFileName("E:\\image_volume_voi.vti");
@@ -187,7 +194,7 @@ int main(int argc, char* argv[])
   data->GetSpacing(spacingr);
   data->GetOrigin(originr);
 
-  // Setup renderer
+  // Setup renderer展示图像的render
   vtkSmartPointer<vtkRenderer> renderer = 
     vtkSmartPointer<vtkRenderer>::New();
   renderer->SetViewport(tangentPicture);
@@ -224,11 +231,13 @@ int main(int argc, char* argv[])
 
 
 
-    // Read all the data from the file
+    // Read all the data from the file读取血管模型数据
   vtkSmartPointer<vtkXMLPolyDataReader> readerModel =
     vtkSmartPointer<vtkXMLPolyDataReader>::New();
   readerModel->SetFileName("E:\\model0927smooth.vtp");
   readerModel->Update();
+
+  //读取中心线模型数据
   vtkSmartPointer<vtkXMLPolyDataReader> centerlineModelReader = vtkSmartPointer<vtkXMLPolyDataReader>::New();
   centerlineModelReader->SetFileName("E:\\model0927centerline.vtp");
   centerlineModelReader->Update();
@@ -251,7 +260,7 @@ int main(int argc, char* argv[])
 
   vtkSmartPointer<vtkActor> centerlineModel = vtkSmartPointer<vtkActor>::New();
   centerlineModel->SetMapper(centerlineMapper);
- 
+  
   vtkSmartPointer<vtkRenderer> rendererModel =
     vtkSmartPointer<vtkRenderer>::New();
   double back[3] = {1.0,1.0,1.0};
@@ -260,6 +269,19 @@ int main(int argc, char* argv[])
   rendererModel->AddActor(actorModel);
   rendererModel->AddActor(centerlineModel);
   window->AddRenderer(rendererModel);
+
+
+
+
+  //中心线数据我不拷贝，下面是单独显示中心线的操作
+  vtkSmartPointer<vtkPolyDataMapper> centerLineMapperOnly = vtkSmartPointer<vtkPolyDataMapper>::New();
+  centerLineMapperOnly->SetInputData(centerline);
+  vtkSmartPointer<vtkActor> centerlineModelOnlyActor = vtkSmartPointer<vtkActor>::New();
+  centerlineModelOnlyActor->SetMapper(centerLineMapperOnly);
+  vtkSmartPointer<vtkRenderer> centerlineOnlyRender = vtkSmartPointer<vtkRenderer>::New();
+  centerlineOnlyRender->AddActor(centerlineModelOnlyActor);
+  centerlineOnlyRender->SetViewport(centerlineOnly);
+  window->AddRenderer(centerlineOnlyRender);
 
   interactor->Start();
   return EXIT_SUCCESS;
