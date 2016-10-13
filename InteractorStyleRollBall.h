@@ -21,6 +21,7 @@ private:
     bool ctrlPressed;
 	vtkRenderer* centerLineOnlyRenderer;
 	vtkRenderer* vascularRenderer;
+	int count;
 };
 
 #endif

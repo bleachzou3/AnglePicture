@@ -150,7 +150,7 @@ int main(int argc, char* argv[])
     vtkSmartPointer<vtkRenderWindowInteractor>::New();
   interactor->SetRenderWindow(window);
   vtkSmartPointer<InteractorStyleRollBall> interactorStyle = vtkSmartPointer<InteractorStyleRollBall>::New();
-  interactor->SetInteractorStyle(interactorStyle);
+  
 
   
   double tangentPicture[4] = {0.0,0.0,0.33,0.5};
@@ -283,6 +283,12 @@ int main(int argc, char* argv[])
   centerlineOnlyRender->SetViewport(centerlineOnly);
   window->AddRenderer(centerlineOnlyRender);
 
+
+
+
+  interactorStyle->setCenterLineOnlyRenderer(centerlineOnlyRender);
+  interactorStyle->setVascularRenderer(rendererModel);
+  interactor->SetInteractorStyle(interactorStyle);
   interactor->Start();
   return EXIT_SUCCESS;
 }

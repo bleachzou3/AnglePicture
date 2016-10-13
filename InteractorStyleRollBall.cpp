@@ -9,6 +9,7 @@ InteractorStyleRollBall::InteractorStyleRollBall()
 	ctrlPressed = false;
 	centerLineOnlyRenderer = 0;
 	vascularRenderer = 0;
+	count = 0;
 }
 void InteractorStyleRollBall::OnLeftButtonUp()
 {
@@ -46,9 +47,13 @@ void InteractorStyleRollBall::OnKeyRelease()
 
 void InteractorStyleRollBall::OnMouseMove()
 {
+    int x = this->Interactor->GetEventPosition()[0];
+    int y = this->Interactor->GetEventPosition()[1];
+    this->FindPokedRenderer(x, y);
 	if(this->GetCurrentRenderer() == centerLineOnlyRenderer && ctrlPressed == true)
 	{
-		cout << "h" << endl;
+		cout << "count:" << count << endl;
+		count++;
 	}
 	vtkInteractorStyleTrackballCamera::OnMouseMove();
 }
