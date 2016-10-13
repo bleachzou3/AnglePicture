@@ -288,6 +288,7 @@ int main(int argc, char* argv[])
 
   interactorStyle->setCenterLineOnlyRenderer(centerlineOnlyRender);
   interactorStyle->setVascularRenderer(rendererModel);
+  interactorStyle->setCenterLineData(centerline);
   interactor->SetInteractorStyle(interactorStyle);
   interactor->Start();
   return EXIT_SUCCESS;
