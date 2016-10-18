@@ -16,6 +16,25 @@ InteractorStyleRollBall::InteractorStyleRollBall()
 	indicatorBall = 0;
 	curId = -1;
 	PointPicker = vtkSmartPointer<vtkPointPicker>::New();
+	imageActor = 0;
+	currentOblique = 0;
+	originalImage = 0;
+
+}
+
+void InteractorStyleRollBall::setCurrentOblique(vtkImageData*_currentOblique)
+{
+	currentOblique = _currentOblique;
+}
+
+void InteractorStyleRollBall::setImageActor(vtkImageActor* _imageActor)
+{
+	imageActor = _imageActor;
+}
+
+void InteractorStyleRollBall::setOriginalImage(vtkImageData* _originalImage)
+{
+	originalImage = _originalImage;
 }
 void InteractorStyleRollBall::OnLeftButtonUp()
 {
@@ -154,5 +173,9 @@ InteractorStyleRollBall::~InteractorStyleRollBall()
 	if(indicatorBall != 0 && indicatorBall->GetReferenceCount() == 1)
 	{
 		indicatorBall->Delete();
+	}
+	if(currentOblique != 0 && currentOblique->GetReferenceCount() == 1)
+	{
+		currentOblique->Delete();
 	}
 }

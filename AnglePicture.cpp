@@ -53,7 +53,8 @@ int main(int argc, char* argv[])
   reader->SetFileName("E:\\image_volume_voi.vti");
   reader->Update();
   vtkImageData* original = reader->GetOutput();
-  vtkSmartPointer<vtkImageData> data = vtkSmartPointer<vtkImageData>::New();
+  //vtkSmartPointer<vtkImageData> data = vtkSmartPointer<vtkImageData>::New();
+  vtkImageData* data = vtkImageData::New();
   //centerline
   Vector3 direction(2,3,1);
   int extent[6];
@@ -86,6 +87,7 @@ int main(int argc, char* argv[])
      vtkSmartPointer<vtkImageActor> actor = 
     vtkSmartPointer<vtkImageActor>::New();
 	   actor->GetMapper()->SetInputData(data);
+
   renderer->AddActor(actor);
   renderer->ResetCamera();  
   window->AddRenderer(renderer);
@@ -173,6 +175,9 @@ int main(int argc, char* argv[])
   interactorStyle->setCenterLineOnlyRenderer(centerlineOnlyRender);
   interactorStyle->setVascularRenderer(rendererModel);
   interactorStyle->setCenterLineData(centerline);
+  interactorStyle->setOriginalImage(original);
+  interactorStyle->setImageActor(actor);
+  interactorStyle->setCurrentOblique(data);
   interactor->SetInteractorStyle(interactorStyle);
   interactor->Start();
   return EXIT_SUCCESS;

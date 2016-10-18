@@ -6,6 +6,8 @@
 #include<vtkSmartPointer.h>
 #include<vtkPointPicker.h>
 #include<vtkPolyData.h>
+#include<vtkImageData.h>
+#include<vtkImageActor.h>
 class InteractorStyleRollBall:public vtkInteractorStyleTrackballCamera
 {
 public:
@@ -22,6 +24,9 @@ public:
 	void setCenterLineOnlyRenderer(vtkRenderer* _centerLineOnlyRenderer);
 	void setVascularRenderer(vtkRenderer* _vascularRenderer);
 	void setCenterLineData(vtkPolyData* _centerLineData);
+	void setImageActor(vtkImageActor*_imageActor);
+	void setCurrentOblique(vtkImageData* _currentOblique);
+	void setOriginalImage(vtkImageData* _originalImage);
 private:
     bool ctrlPressed;
 	//从外部传进来的
@@ -44,6 +49,15 @@ private:
 	vtkActor* indicatorBall;
 
 	vtkIdType curId;
+
+	//原始的数据集，从外面传进来
+	vtkImageData* originalImage;
+
+	//当前切片的数据，这个比较特殊虽然从外面传进来，但是要在这里销毁
+	vtkImageData* currentOblique;
+
+	//从外面传进来
+	vtkImageActor* imageActor;
 private:
 	void showBall(vtkIdType _id);
 };
