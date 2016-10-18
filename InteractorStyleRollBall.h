@@ -27,6 +27,7 @@ public:
 	void setImageActor(vtkImageActor*_imageActor);
 	void setCurrentOblique(vtkImageData* _currentOblique);
 	void setOriginalImage(vtkImageData* _originalImage);
+	void setImageRenderer(vtkRenderer* _imageRenderer);
 private:
     bool ctrlPressed;
 	//从外部传进来的
@@ -35,6 +36,8 @@ private:
 	//从外部传进来的
 	vtkRenderer* vascularRenderer;
 
+	//显示切片数据的renderer
+	vtkRenderer* imageRenderer;
 
 	//从外表传入,这个是已经计算出了normal的中心线
 	vtkPolyData* centerLineData;
@@ -60,6 +63,9 @@ private:
 	vtkImageActor* imageActor;
 private:
 	void showBall(vtkIdType _id);
+
+	//在showBall里面调用changePicture
+	void changePicture(vtkIdType _id,double* fixedPoint);
 };
 
 #endif

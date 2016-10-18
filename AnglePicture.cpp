@@ -56,43 +56,6 @@ int main(int argc, char* argv[])
   //vtkSmartPointer<vtkImageData> data = vtkSmartPointer<vtkImageData>::New();
   vtkImageData* data = vtkImageData::New();
   //centerline
-  Vector3 direction(2,3,1);
-  int extent[6];
-  double spacing[3];
-  double origin[3];
-  original->GetExtent(extent);
-  original->GetSpacing(spacing);
-  original->GetOrigin(origin);
-  double center[3];
-  center[0] = origin[0] + spacing[0] * 0.5 * (extent[0] + extent[1]);
-  center[1] = origin[1] + spacing[1] * 0.5 * (extent[2] + extent[3]);
-  center[2] = origin[2] + spacing[2] * 0.5 * (extent[4] + extent[5]);
-  Vector3 fixedPoint(center[0],center[1],center[2]);
-
-  AnglePictureUtility::computeOblique(original,direction,fixedPoint,data);
-
-  int extentr[6];
-  double spacingr[6];
-  double originr[6];
-
-  data->GetExtent(extentr);
-  data->GetSpacing(spacingr);
-  data->GetOrigin(originr);
-
-  // Setup renderer展示图像的render
-  vtkSmartPointer<vtkRenderer> renderer = 
-    vtkSmartPointer<vtkRenderer>::New();
-  renderer->SetViewport(tangentPicture);
-   renderer->SetBackground(0.5,0.5,0.5);
-     vtkSmartPointer<vtkImageActor> actor = 
-    vtkSmartPointer<vtkImageActor>::New();
-	   actor->GetMapper()->SetInputData(data);
-
-  renderer->AddActor(actor);
-  renderer->ResetCamera();  
-  window->AddRenderer(renderer);
-  renderer->SetViewPoint(tangentPicture);
-  actor->Update();
 
 
 
@@ -159,6 +122,82 @@ int main(int argc, char* argv[])
 
 
 
+
+
+
+
+
+
+
+    
+  int extent[6];
+  double spacing[3];
+  double origin[3];
+  original->GetExtent(extent);
+  original->GetSpacing(spacing);
+  original->GetOrigin(origin);
+  double center[3];
+  center[0] = origin[0] + spacing[0] * 0.5 * (extent[0] + extent[1]);
+  center[1] = origin[1] + spacing[1] * 0.5 * (extent[2] + extent[3]);
+  center[2] = origin[2] + spacing[2] * 0.5 * (extent[4] + extent[5]);
+
+
+  	double* normal = centerline->GetPointData()->GetArray("obliqueNormal")->GetTuple(34);
+	cout << "normal:" << normal[0] << " " << normal[1] << "  " << normal[2] << endl;
+
+
+	double center2[3];
+    centerline->GetPoint(34,center2);
+	cout << "center2: " <<center2[0] <<" " << center2[1] << "  " << center2[2] << endl;
+  Vector3 fixedPoint(center2[0],center2[1],center2[2]);
+  Vector3 direction(normal[0],normal[1],normal[2]);
+  cout << "center" << center[0] << center[1] << center[2] << endl;
+  AnglePictureUtility::computeOblique(original,direction,fixedPoint,data);
+
+  int extentr[6];
+  double spacingr[6];
+  double originr[6];
+
+  data->GetExtent(extentr);
+  data->GetSpacing(spacingr);
+  data->GetOrigin(originr);
+
+  // Setup renderer展示图像的render
+  vtkSmartPointer<vtkRenderer> renderer = 
+    vtkSmartPointer<vtkRenderer>::New();
+  renderer->SetViewport(tangentPicture);
+   renderer->SetBackground(0.5,0.5,0.5);
+ //    vtkSmartPointer<vtkImageActor> actor = 
+ //   vtkSmartPointer<vtkImageActor>::New();
+       vtkImageActor*actor = vtkImageActor::New();
+	   actor->GetMapper()->SetInputData(data);
+	   actor->Update();
+
+  renderer->AddActor(actor);
+  renderer->ResetCamera();  
+  window->AddRenderer(renderer);
+  renderer->SetViewPoint(tangentPicture);
+  actor->Update();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   //中心线数据我不拷贝，下面是单独显示中心线的操作
   vtkSmartPointer<vtkPolyDataMapper> centerLineMapperOnly = vtkSmartPointer<vtkPolyDataMapper>::New();
   centerLineMapperOnly->SetInputData(centerline);
@@ -174,6 +213,7 @@ int main(int argc, char* argv[])
 
   interactorStyle->setCenterLineOnlyRenderer(centerlineOnlyRender);
   interactorStyle->setVascularRenderer(rendererModel);
+  interactorStyle->setImageRenderer(renderer);
   interactorStyle->setCenterLineData(centerline);
   interactorStyle->setOriginalImage(original);
   interactorStyle->setImageActor(actor);

@@ -7,6 +7,11 @@
 #include <vtkPointData.h>
 #include <vtkSphereSource.h>
 #include <vtkPolyDataMapper.h>
+#include <vtkImageMapper3D.h>
+#include "AnglePictureUtility.h"
+#include <vtkJPEGWriter.h>
+#include <vtkImageWriter.h>
+#include <vtkDoubleArray.h>
 vtkStandardNewMacro(InteractorStyleRollBall);
 InteractorStyleRollBall::InteractorStyleRollBall()
 {
@@ -22,6 +27,12 @@ InteractorStyleRollBall::InteractorStyleRollBall()
 
 }
 
+
+void InteractorStyleRollBall::setImageRenderer(vtkRenderer* _imageRenderer)
+{
+	imageRenderer = _imageRenderer;
+
+}
 void InteractorStyleRollBall::setCurrentOblique(vtkImageData*_currentOblique)
 {
 	currentOblique = _currentOblique;
@@ -122,6 +133,62 @@ void InteractorStyleRollBall::setCenterLineData(vtkPolyData* _centerlineData)
 	centerLineData = _centerlineData;
 }
 
+void InteractorStyleRollBall::changePicture(vtkIdType _id,double* fixedPoint)
+{
+	vtkImageData *oldOblique = currentOblique;
+	if(imageActor != 0)
+	{
+		imageRenderer->RemoveActor(imageActor);
+	}
+
+	if(imageActor != 0 && imageActor->GetReferenceCount() == 1)
+	{
+		imageActor->Delete();
+	}
+
+	imageActor = vtkImageActor::New();
+    currentOblique = vtkImageData::New();
+	
+	double* normal = centerLineData->GetPointData()->GetArray("obliqueNormal")->GetTuple(_id);
+	cout << "normal:" << normal[0] << " " << normal[1] << "  " << normal[2] << endl;
+
+	Vector3 normalV(normal[0]*100,normal[1]*100,normal[2]*100);
+	Vector3 fixedPointV(fixedPoint[0],fixedPoint[1],fixedPoint[2]);
+	AnglePictureUtility::computeOblique(originalImage,normalV,fixedPointV,currentOblique);
+
+	/**
+	vtkSmartPointer<vtkImageWriter> writer = vtkSmartPointer<vtkImageWriter>::New();
+	writer->SetInputData(currentOblique);
+	string name = "E:\\Output" + curId;
+	name.append(".raw");
+	writer->SetFileName(name.c_str());
+	writer->Write();
+	*/
+	
+	imageActor->GetMapper()->SetInputData(currentOblique);
+	imageActor->Update();
+	if(curId % 2 == 0)
+	{
+	imageRenderer->AddActor(imageActor);
+	}
+    int extent[6];
+	int dimension[3];
+	currentOblique->GetExtent(extent);
+	currentOblique->GetDimensions(dimension);
+	cout << "imageActor:" << imageActor << endl;
+	cout << currentOblique << "currentOblique" << extent[0] << " " <<extent[1]<< " " << extent[2] <<" " << extent[3] <<"  " << extent[4] << "  " <<extent[5] << endl;
+	cout << "dimension" << dimension[0] << " " << dimension[1] << " " << dimension[2] << endl;
+
+
+	if(oldOblique != 0 && oldOblique->GetReferenceCount() == 1)
+	{
+		oldOblique->Delete();
+	}
+
+	imageRenderer->Render();
+	imageRenderer->GetRenderWindow()->Render();
+
+}
 
 void InteractorStyleRollBall::showBall(vtkIdType _id)
 {
@@ -163,8 +230,13 @@ void InteractorStyleRollBall::showBall(vtkIdType _id)
 			sphereMapper->SetInputData(sphere->GetOutput());
 			indicatorBall->SetMapper(sphereMapper);
 			vascularRenderer->AddActor(indicatorBall);
+
+			changePicture(_id,center);
+
+			imageRenderer->Render();
 			vascularRenderer->Render();
 			vascularRenderer->GetRenderWindow()->Render();
+			imageRenderer->GetRenderWindow()->Render();
 			
 }
 
@@ -173,6 +245,10 @@ InteractorStyleRollBall::~InteractorStyleRollBall()
 	if(indicatorBall != 0 && indicatorBall->GetReferenceCount() == 1)
 	{
 		indicatorBall->Delete();
+	}
+	if(imageActor != 0 && imageActor->GetReferenceCount() == 1)
+	{
+		imageActor->Delete();
 	}
 	if(currentOblique != 0 && currentOblique->GetReferenceCount() == 1)
 	{
