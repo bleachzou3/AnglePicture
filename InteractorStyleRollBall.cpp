@@ -149,7 +149,7 @@ void InteractorStyleRollBall::changePicture(vtkIdType _id,double* fixedPoint)
 	imageActor = vtkImageActor::New();
     currentOblique = vtkImageData::New();
 	
-	double* normal = centerLineData->GetPointData()->GetArray("obliqueNormal")->GetTuple(_id);
+	double* normal = centerLineData->GetPointData()->GetArray(AnglePictureUtility::OBLIQUE_NORMAL.c_str())->GetTuple(_id);
 	cout << "normal:" << normal[0] << " " << normal[1] << "  " << normal[2] << endl;
 
 	Vector3 normalV(normal[0]*100,normal[1]*100,normal[2]*100);
@@ -217,7 +217,7 @@ void InteractorStyleRollBall::showBall(vtkIdType _id)
 			cout << "center: " <<center[0] <<" " << center[1] << "  " << center[2] << endl;
 
 			//获取半径
-			double* radius = centerLineData->GetPointData()->GetArray("MaximumInscribedSphereRadius")->GetTuple(curId);
+			double* radius = centerLineData->GetPointData()->GetArray(AnglePictureUtility::MAXIMUM_INSCRIBED_SPHERE_RADIUS.c_str())->GetTuple(curId);
 			cout << "radius:" << radius[0] << endl;
 
 			//生成小球

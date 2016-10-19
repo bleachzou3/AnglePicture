@@ -4,6 +4,7 @@
 #include <vtkPolyData.h>
 #include "Vector3.h"
 #include <vtkSmartPointer.h>
+#include <unordered_map>
 class AnglePictureUtility
 {
 public:
@@ -19,5 +20,12 @@ public:
 	* 计算左右相邻的两个点，哪个点近就用哪个
 	*/
 	static void computeNormalByPoints(vtkPolyData * data);
+
+	/**
+	*
+	*/
+	static void computeAllAngleImages(vtkPolyData*data,unordered_map<vtkIdType,vtkImageData*>& images);
+	static const string  OBLIQUE_NORMAL;
+	static const string  MAXIMUM_INSCRIBED_SPHERE_RADIUS;                          
 };
 #endif
