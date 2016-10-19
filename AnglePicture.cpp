@@ -142,17 +142,19 @@ int main(int argc, char* argv[])
   center[2] = origin[2] + spacing[2] * 0.5 * (extent[4] + extent[5]);
 
 
-  	double* normal = centerline->GetPointData()->GetArray("obliqueNormal")->GetTuple(34);
+  double* normal = centerline->GetPointData()->GetArray(AnglePictureUtility::OBLIQUE_NORMAL.c_str())->GetTuple(100);
 	cout << "normal:" << normal[0] << " " << normal[1] << "  " << normal[2] << endl;
 
 
 	double center2[3];
-    centerline->GetPoint(34,center2);
+    centerline->GetPoint(100,center2);
 	cout << "center2: " <<center2[0] <<" " << center2[1] << "  " << center2[2] << endl;
   Vector3 fixedPoint(center2[0],center2[1],center2[2]);
   Vector3 direction(normal[0],normal[1],normal[2]);
   cout << "center" << center[0] << center[1] << center[2] << endl;
-  AnglePictureUtility::computeOblique(original,direction,fixedPoint,data);
+  //AnglePictureUtility::computeOblique(original,direction,fixedPoint,data);
+  unordered_map<vtkIdType,vtkImageData*> allImage;
+  AnglePictureUtility::computeAllAngleImages(centerline,allImage,original);
 
   int extentr[6];
   double spacingr[6];
@@ -170,7 +172,7 @@ int main(int argc, char* argv[])
  //    vtkSmartPointer<vtkImageActor> actor = 
  //   vtkSmartPointer<vtkImageActor>::New();
        vtkImageActor*actor = vtkImageActor::New();
-	   actor->GetMapper()->SetInputData(data);
+	   actor->GetMapper()->SetInputData(allImage[50]);
 	   actor->Update();
 
   renderer->AddActor(actor);
@@ -217,8 +219,10 @@ int main(int argc, char* argv[])
   interactorStyle->setCenterLineData(centerline);
   interactorStyle->setOriginalImage(original);
   interactorStyle->setImageActor(actor);
-  interactorStyle->setCurrentOblique(data);
+  interactorStyle->setCurrentOblique(allImage[210]);
+  interactorStyle->setAllAnglesImages(allImage);
   interactor->SetInteractorStyle(interactorStyle);
   interactor->Start();
+  data->Delete();
   return EXIT_SUCCESS;
 }

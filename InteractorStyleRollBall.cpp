@@ -135,6 +135,7 @@ void InteractorStyleRollBall::setCenterLineData(vtkPolyData* _centerlineData)
 
 void InteractorStyleRollBall::changePicture(vtkIdType _id,double* fixedPoint)
 {
+	/**
 	vtkImageData *oldOblique = currentOblique;
 	if(imageActor != 0)
 	{
@@ -155,15 +156,6 @@ void InteractorStyleRollBall::changePicture(vtkIdType _id,double* fixedPoint)
 	Vector3 normalV(normal[0]*100,normal[1]*100,normal[2]*100);
 	Vector3 fixedPointV(fixedPoint[0],fixedPoint[1],fixedPoint[2]);
 	AnglePictureUtility::computeOblique(originalImage,normalV,fixedPointV,currentOblique);
-
-	/**
-	vtkSmartPointer<vtkImageWriter> writer = vtkSmartPointer<vtkImageWriter>::New();
-	writer->SetInputData(currentOblique);
-	string name = "E:\\Output" + curId;
-	name.append(".raw");
-	writer->SetFileName(name.c_str());
-	writer->Write();
-	*/
 	
 	imageActor->GetMapper()->SetInputData(currentOblique);
 	imageActor->Update();
@@ -187,7 +179,21 @@ void InteractorStyleRollBall::changePicture(vtkIdType _id,double* fixedPoint)
 
 	imageRenderer->Render();
 	imageRenderer->GetRenderWindow()->Render();
+	*/
 
+	/**
+	if(imageActor != 0)
+	{
+		imageRenderer->RemoveActor(imageActor);
+	}
+
+	if(imageActor != 0 && imageActor->GetReferenceCount() == 1)
+	{
+		imageActor->Delete();
+	}
+
+	imageActor = vtkImageActor::New();
+	*/
 }
 
 void InteractorStyleRollBall::showBall(vtkIdType _id)
@@ -254,4 +260,28 @@ InteractorStyleRollBall::~InteractorStyleRollBall()
 	{
 		currentOblique->Delete();
 	}
+	for(pair<vtkIdType,vtkImageData*> cur:allAnglesImages)
+	{
+		if(cur.second != 0 && cur.second->GetReferenceCount() == 1)
+		{
+			cur.second->Delete();
+		}
+	}
 }
+
+void InteractorStyleRollBall::setAllAnglesImages(unordered_map<vtkIdType,vtkImageData*> & _allImage)
+{
+	allAnglesImages = _allImage;
+}
+/**
+*这个是把所有图片像素都计算出来版本
+void InteractorStyleRollBall::changePicture(vtkIdType _id,double* fixedPoint)
+{
+	imageActor->GetMapper()->SetInputData(allAnglesImages[_id]);
+	imageActor->Update();
+	//imageRenderer->AddActor(imageActor);
+	imageRenderer->Render();
+	imageRenderer->GetRenderWindow()->Render();
+
+}
+*/

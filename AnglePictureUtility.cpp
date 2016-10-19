@@ -30,7 +30,7 @@ void AnglePictureUtility::computeOblique(vtkImageData* original,Vector3 directio
 	Vector3 V = onb.v();
 	Vector3 W = onb.w();
 
-	static double axialElements[16] = {
+   double axialElements[16] = {
 		V.x(),W.x(),U.x(),fixedPoint.x(),
 		V.y(),W.y(),U.y(),fixedPoint.y(),
 		V.z(),W.z(),U.z(),fixedPoint.z(),
@@ -119,8 +119,21 @@ void AnglePictureUtility::computeNormalByPoints(vtkPolyData * data)
 
 }
 
-void AnglePictureUtility::computeAllAngleImages(vtkPolyData*data,unordered_map<vtkIdType,vtkImageData*>&images)
+void AnglePictureUtility::computeAllAngleImages(vtkPolyData*data,unordered_map<vtkIdType,vtkImageData*>&images,vtkImageData* originalImage)
 {
+	int N = data->GetNumberOfPoints();
+	vtkDataArray* normals = data->GetPointData()->GetArray(OBLIQUE_NORMAL.c_str());
+	for(int i = 0; i < N; i++)
+	{
+		double center[3];
+		data->GetPoint(i,center);
+		Vector3 fixedPoint(center[0],center[1],center[2]);
 
+		double* normal = normals->GetTuple(i);
+		Vector3 direction(normal[0],normal[1],normal[2]);
+		vtkImageData* temp = vtkImageData::New();
+		computeOblique(originalImage,direction,fixedPoint,temp);
+		images[i] = temp;
+	}
 
 }

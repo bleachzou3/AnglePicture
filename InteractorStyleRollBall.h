@@ -1,5 +1,6 @@
 #ifndef INTERACTOR_STYLE_ROLL_BALL_H_
 #define INTERACTOR_STYLE_ROLL_BALL_H_
+using namespace std;
 #include<vtkInteractorStyleTrackballCamera.h>
 #include<vtkRenderer.h>
 #include<vtkSetGet.h>
@@ -8,6 +9,7 @@
 #include<vtkPolyData.h>
 #include<vtkImageData.h>
 #include<vtkImageActor.h>
+#include<unordered_map>
 class InteractorStyleRollBall:public vtkInteractorStyleTrackballCamera
 {
 public:
@@ -28,6 +30,7 @@ public:
 	void setCurrentOblique(vtkImageData* _currentOblique);
 	void setOriginalImage(vtkImageData* _originalImage);
 	void setImageRenderer(vtkRenderer* _imageRenderer);
+	void setAllAnglesImages(unordered_map<vtkIdType,vtkImageData*>& _allImages);
 private:
     bool ctrlPressed;
 	//从外部传进来的
@@ -61,6 +64,12 @@ private:
 
 	//从外面传进来
 	vtkImageActor* imageActor;
+
+	//存放所有角度的图片
+	std::unordered_map<vtkIdType,vtkImageData*> allAnglesImages;
+
+
+	bool calculateAllAnglesImages;
 private:
 	void showBall(vtkIdType _id);
 
