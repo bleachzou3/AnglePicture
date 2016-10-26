@@ -12,6 +12,8 @@
 #include <vtkJPEGWriter.h>
 #include <vtkImageWriter.h>
 #include <vtkDoubleArray.h>
+#include <vtkCursor2D.h>
+#include <vtkProperty.h>
 vtkStandardNewMacro(InteractorStyleRollBall);
 InteractorStyleRollBall::InteractorStyleRollBall()
 {
@@ -24,6 +26,7 @@ InteractorStyleRollBall::InteractorStyleRollBall()
 	imageActor = 0;
 	currentOblique = 0;
 	originalImage = 0;
+	initLesionCursor();
 
 }
 
@@ -54,6 +57,23 @@ void InteractorStyleRollBall::OnLeftButtonUp()
 }
 void InteractorStyleRollBall::OnLeftButtonDown()
 {
+	int x = this->Interactor->GetEventPosition()[0];
+    int y = this->Interactor->GetEventPosition()[1];
+	
+	//switch current renderer
+    this->FindPokedRenderer(x, y);
+	if(this->GetCurrentRenderer() == imageRenderer)
+	{
+		if(showCursor)
+		{
+		   imageRenderer->AddActor(cursorActor);
+		   showCursor = false;
+		}else
+		{  
+			imageRenderer->RemoveActor(cursorActor);
+			showCursor = true;
+		}
+	}
 
 	vtkInteractorStyleTrackballCamera::OnLeftButtonDown();
 }
@@ -132,44 +152,33 @@ void InteractorStyleRollBall::setCenterLineData(vtkPolyData* _centerlineData)
 {
 	centerLineData = _centerlineData;
 }
-
+/**
+*这个点的切片实时计算的版本
+*/
 void InteractorStyleRollBall::changePicture(vtkIdType _id,double* fixedPoint)
 {
-	/**
+	
 	vtkImageData *oldOblique = currentOblique;
-	if(imageActor != 0)
-	{
-		imageRenderer->RemoveActor(imageActor);
-	}
-
-	if(imageActor != 0 && imageActor->GetReferenceCount() == 1)
-	{
-		imageActor->Delete();
-	}
-
-	imageActor = vtkImageActor::New();
-    currentOblique = vtkImageData::New();
-	
+    currentOblique = vtkImageData::New();	
 	double* normal = centerLineData->GetPointData()->GetArray(AnglePictureUtility::OBLIQUE_NORMAL.c_str())->GetTuple(_id);
-	cout << "normal:" << normal[0] << " " << normal[1] << "  " << normal[2] << endl;
-
-	Vector3 normalV(normal[0]*100,normal[1]*100,normal[2]*100);
+	Vector3 normalV(normal[0],normal[1],normal[2]);
 	Vector3 fixedPointV(fixedPoint[0],fixedPoint[1],fixedPoint[2]);
-	AnglePictureUtility::computeOblique(originalImage,normalV,fixedPointV,currentOblique);
-	
+	AnglePictureUtility::computeOblique(originalImage,normalV,fixedPointV,currentOblique);	
 	imageActor->GetMapper()->SetInputData(currentOblique);
 	imageActor->Update();
-	if(curId % 2 == 0)
-	{
 	imageRenderer->AddActor(imageActor);
-	}
     int extent[6];
 	int dimension[3];
+	double origin[3];
+	double spacing[3];
 	currentOblique->GetExtent(extent);
 	currentOblique->GetDimensions(dimension);
-	cout << "imageActor:" << imageActor << endl;
-	cout << currentOblique << "currentOblique" << extent[0] << " " <<extent[1]<< " " << extent[2] <<" " << extent[3] <<"  " << extent[4] << "  " <<extent[5] << endl;
-	cout << "dimension" << dimension[0] << " " << dimension[1] << " " << dimension[2] << endl;
+	currentOblique->GetOrigin(origin);
+	currentOblique->GetSpacing(spacing);
+	cout << "currentOblique:" << extent[0] << " " <<extent[1]<< " " << extent[2] <<" " << extent[3] <<"  " << extent[4] << "  " <<extent[5] << endl;
+	cout << "currentOblique:dimension" << dimension[0] << " " << dimension[1] << " " << dimension[2] << endl;
+	cout << "currentOblique: origin:" << origin[0] << " " << origin[1] << " " << origin[2] << endl;
+	cout << "currentOblique:spacing" << spacing[0] << " " << spacing[1] << " " << spacing[2] << endl;
 
 
 	if(oldOblique != 0 && oldOblique->GetReferenceCount() == 1)
@@ -179,21 +188,7 @@ void InteractorStyleRollBall::changePicture(vtkIdType _id,double* fixedPoint)
 
 	imageRenderer->Render();
 	imageRenderer->GetRenderWindow()->Render();
-	*/
 
-	/**
-	if(imageActor != 0)
-	{
-		imageRenderer->RemoveActor(imageActor);
-	}
-
-	if(imageActor != 0 && imageActor->GetReferenceCount() == 1)
-	{
-		imageActor->Delete();
-	}
-
-	imageActor = vtkImageActor::New();
-	*/
 }
 
 void InteractorStyleRollBall::showBall(vtkIdType _id)
@@ -248,6 +243,7 @@ void InteractorStyleRollBall::showBall(vtkIdType _id)
 
 InteractorStyleRollBall::~InteractorStyleRollBall()
 {
+
 	if(indicatorBall != 0 && indicatorBall->GetReferenceCount() == 1)
 	{
 		indicatorBall->Delete();
@@ -267,14 +263,34 @@ InteractorStyleRollBall::~InteractorStyleRollBall()
 			cur.second->Delete();
 		}
 	}
+	
 }
 
 void InteractorStyleRollBall::setAllAnglesImages(unordered_map<vtkIdType,vtkImageData*> & _allImage)
 {
 	allAnglesImages = _allImage;
 }
+
+
+void InteractorStyleRollBall::initLesionCursor()
+{
+		cursor = vtkSmartPointer<vtkCursor2D>::New();
+		cursor->SetModelBounds(-10,10,-10,10,0,0);
+		cursor->AllOn();
+		cursor->OutlineOff();
+		cursor->Update();
+ 
+	    cursorMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+		cursorMapper->SetInputConnection(cursor->GetOutputPort());
+		cursorActor = vtkSmartPointer<vtkActor>::New();
+		cursorActor->GetProperty()->SetColor(1,0,0);
+		cursorActor->SetMapper(cursorMapper);
+
+		showCursor = true;
+}
 /**
-*这个是把所有图片像素都计算出来版本
+*这个是把所有点切片都都计算出来版本(实时显示图像)
+*
 void InteractorStyleRollBall::changePicture(vtkIdType _id,double* fixedPoint)
 {
 	imageActor->GetMapper()->SetInputData(allAnglesImages[_id]);

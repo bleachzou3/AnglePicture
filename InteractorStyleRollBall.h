@@ -10,6 +10,7 @@ using namespace std;
 #include<vtkImageData.h>
 #include<vtkImageActor.h>
 #include<unordered_map>
+#include<vtkCursor2D.h>
 class InteractorStyleRollBall:public vtkInteractorStyleTrackballCamera
 {
 public:
@@ -65,16 +66,28 @@ private:
 	//从外面传进来
 	vtkImageActor* imageActor;
 
-	//存放所有角度的图片
+	//存放所有角度的图片,如果不是实时计算的版本这个可以注释掉
 	std::unordered_map<vtkIdType,vtkImageData*> allAnglesImages;
 
 
 	bool calculateAllAnglesImages;
+
+	//显示cursor
+	vtkSmartPointer<vtkCursor2D> cursor;
+
+	vtkSmartPointer<vtkPolyDataMapper> cursorMapper;
+
+	vtkSmartPointer<vtkActor> cursorActor;
+
+	bool showCursor;
 private:
 	void showBall(vtkIdType _id);
 
 	//在showBall里面调用changePicture
 	void changePicture(vtkIdType _id,double* fixedPoint);
+
+	//在image renderer里面标记现在血管位置
+	void initLesionCursor();
 };
 
 #endif
