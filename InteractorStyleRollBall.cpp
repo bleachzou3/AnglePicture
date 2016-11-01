@@ -26,6 +26,7 @@ InteractorStyleRollBall::InteractorStyleRollBall()
 	imageActor = 0;
 	currentOblique = 0;
 	originalImage = 0;
+	leftButtonDown = false;
 	initLesionCursor();
 
 }
@@ -52,12 +53,13 @@ void InteractorStyleRollBall::setOriginalImage(vtkImageData* _originalImage)
 }
 void InteractorStyleRollBall::OnLeftButtonUp()
 {
-	
+	leftButtonDown = false;
 	vtkInteractorStyleTrackballCamera::OnLeftButtonUp();
 }
 void InteractorStyleRollBall::OnLeftButtonDown()
 {
 
+	leftButtonDown = true;
 	int x = this->Interactor->GetEventPosition()[0];
     int y = this->Interactor->GetEventPosition()[1];
 	
@@ -136,9 +138,27 @@ void InteractorStyleRollBall::OnMouseMove()
 		}
 
 	}
+	simultaneousOrientation();
 	vtkInteractorStyleTrackballCamera::OnMouseMove();
 }
+void InteractorStyleRollBall::simultaneousOrientation()
+{
+	if((this->GetCurrentRenderer() == centerLineOnlyRenderer || this->GetCurrentRenderer() == vascularRenderer )&&leftButtonDown)
+	{
+		if(this->GetCurrentRenderer() == centerLineOnlyRenderer )
+		{
+			vascularRenderer->GetActiveCamera()->SetPosition(centerLineOnlyRenderer->GetActiveCamera()->GetPosition());
+			//vascularRenderer->GetActiveCamera()->SetUserTransform(centerLineOnlyRenderer->GetActiveCamera()->GetUserTransform());
+			vascularRenderer->GetActiveCamera()->SetViewUp(centerLineOnlyRenderer->GetActiveCamera()->GetViewUp());
+		}else
+		{
+			centerLineOnlyRenderer->GetActiveCamera()->SetPosition(vascularRenderer->GetActiveCamera()->GetPosition());
+			//centerLineOnlyRenderer->GetActiveCamera()->SetUserTransform(vascularRenderer->GetActiveCamera()->GetUserTransform());
+			centerLineOnlyRenderer->GetActiveCamera()->SetViewUp(vascularRenderer->GetActiveCamera()->GetViewUp());
+		}	
+	}
 
+}
 void InteractorStyleRollBall::setCenterLineOnlyRenderer(vtkRenderer* _centerLineOnlyRenderer)
 {
 	centerLineOnlyRenderer = _centerLineOnlyRenderer;

@@ -11,6 +11,7 @@ using namespace std;
 #include<vtkImageActor.h>
 #include<unordered_map>
 #include<vtkCursor2D.h>
+#include<vtkCamera.h>
 class InteractorStyleRollBall:public vtkInteractorStyleTrackballCamera
 {
 public:
@@ -34,6 +35,8 @@ public:
 	void setAllAnglesImages(unordered_map<vtkIdType,vtkImageData*>& _allImages);
 private:
     bool ctrlPressed;
+
+	bool leftButtonDown;
 	//从外部传进来的
 	vtkRenderer* centerLineOnlyRenderer;
 
@@ -88,6 +91,9 @@ private:
 
 	//在image renderer里面标记现在血管位置
 	void initLesionCursor();
+
+	//实现两边同步操作
+	void simultaneousOrientation();
 };
 
 #endif

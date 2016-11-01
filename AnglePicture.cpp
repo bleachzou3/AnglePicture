@@ -222,9 +222,9 @@ int main(int argc, char* argv[])
   centerlineOnlyRender->AddActor(centerlineModelOnlyActor);
   centerlineOnlyRender->SetViewport(centerlineOnly);
   window->AddRenderer(centerlineOnlyRender);
+  
 
-
-
+  
   interactorStyle->setCenterLineOnlyRenderer(centerlineOnlyRender);
   interactorStyle->setVascularRenderer(rendererModel);
   interactorStyle->setImageRenderer(obliqueImageRenderer);
