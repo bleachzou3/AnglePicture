@@ -57,6 +57,7 @@ void InteractorStyleRollBall::OnLeftButtonUp()
 }
 void InteractorStyleRollBall::OnLeftButtonDown()
 {
+
 	int x = this->Interactor->GetEventPosition()[0];
     int y = this->Interactor->GetEventPosition()[1];
 	

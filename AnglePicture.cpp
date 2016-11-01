@@ -23,9 +23,25 @@
 #include <vtkMath.h>
 #include "InteractorStyleRollBall.h"
 #include "AnglePictureUtility.h"
+#include <log4cpp/Category.hh>
+#include <log4cpp/PropertyConfigurator.hh>
 int main(int argc, char* argv[])
 {
 
+
+	try
+	{
+		log4cpp::PropertyConfigurator::configure("log4cpp.conf");
+	}
+	catch (log4cpp::ConfigureFailure& f)
+	{
+		std::cout << "Configure Problem " << f.what() << std::endl;
+		return -1;
+	}
+	log4cpp::Category& rootLog  = log4cpp::Category::getRoot();
+	rootLog.info("程序开始执行");
+	log4cpp::Category& subLog = log4cpp::Category::getInstance(std::string("sub1"));
+	subLog.info("程序开始执行");
    // Setup render window
   vtkSmartPointer<vtkRenderWindow> window = 
     vtkSmartPointer<vtkRenderWindow>::New();
@@ -48,13 +64,13 @@ int main(int argc, char* argv[])
   reader->Update();
   */
   //读取原始的图像切片数据
-   vtkSmartPointer<vtkXMLImageDataReader> reader =
+   vtkSmartPointer<vtkXMLImageDataReader> originalImageDataReader =
     vtkSmartPointer<vtkXMLImageDataReader>::New();
-  reader->SetFileName("E:\\image_volume_voi.vti");
-  reader->Update();
-  vtkImageData* original = reader->GetOutput();
+  originalImageDataReader->SetFileName("E:\\image_volume_voi.vti");
+  originalImageDataReader->Update();
+  vtkImageData* original = originalImageDataReader->GetOutput();
   //vtkSmartPointer<vtkImageData> data = vtkSmartPointer<vtkImageData>::New();
-  vtkImageData* data = vtkImageData::New();
+  vtkImageData* initialObliqueData = vtkImageData::New();
   //centerline
 
 
@@ -81,10 +97,10 @@ int main(int argc, char* argv[])
 
 
     // Read all the data from the file读取血管模型数据
-  vtkSmartPointer<vtkXMLPolyDataReader> readerModel =
+  vtkSmartPointer<vtkXMLPolyDataReader> vascularModelReader =
     vtkSmartPointer<vtkXMLPolyDataReader>::New();
-  readerModel->SetFileName("E:\\model0927smooth.vtp");
-  readerModel->Update();
+  vascularModelReader->SetFileName("E:\\model0927smooth.vtp");
+  vascularModelReader->Update();
 
   //读取中心线模型数据
   vtkSmartPointer<vtkXMLPolyDataReader> centerlineModelReader = vtkSmartPointer<vtkXMLPolyDataReader>::New();
@@ -94,9 +110,9 @@ int main(int argc, char* argv[])
   AnglePictureUtility::computeNormalByPoints(centerline);
 
   // Visualize
-  vtkSmartPointer<vtkPolyDataMapper> mapper =
+  vtkSmartPointer<vtkPolyDataMapper> centerLineMapper =
     vtkSmartPointer<vtkPolyDataMapper>::New();
-  mapper->SetInputConnection(readerModel->GetOutputPort());
+  centerLineMapper->SetInputConnection(vascularModelReader->GetOutputPort());
   vtkSmartPointer<vtkPolyDataMapper> centerlineMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
  //centerlineMapper->SetInputConnection(centerlineModelReader->GetOutputPort());
   centerlineMapper->SetInputData(centerline);
@@ -105,7 +121,7 @@ int main(int argc, char* argv[])
     vtkSmartPointer<vtkActor>::New();
   actorModel->GetProperty()->SetOpacity(0.1);
   actorModel->GetProperty()->SetColor(0.5,0.5,0.5);
-  actorModel->SetMapper(mapper);
+  actorModel->SetMapper(centerLineMapper);
 
   vtkSmartPointer<vtkActor> centerlineModel = vtkSmartPointer<vtkActor>::New();
   centerlineModel->SetMapper(centerlineMapper);
@@ -149,7 +165,7 @@ int main(int argc, char* argv[])
   
   Vector3 fixedPoint(center[0],center[1],center[2]);
   Vector3 direction(0,0,1);
-  AnglePictureUtility::computeOblique(original,direction,fixedPoint,data);
+  AnglePictureUtility::computeOblique(original,direction,fixedPoint,initialObliqueData);
   unordered_map<vtkIdType,vtkImageData*> allImage;
   AnglePictureUtility::computeAllAngleImages(centerline,allImage,original);
 
@@ -157,28 +173,28 @@ int main(int argc, char* argv[])
   double spacingr[6];
   double originr[6];
 
-  data->GetExtent(extentr);
-  data->GetSpacing(spacingr);
-  data->GetOrigin(originr);
+  initialObliqueData->GetExtent(extentr);
+  initialObliqueData->GetSpacing(spacingr);
+  initialObliqueData->GetOrigin(originr);
 
   // Setup renderer展示图像的render
-  vtkSmartPointer<vtkRenderer> renderer = 
+  vtkSmartPointer<vtkRenderer> obliqueImageRenderer = 
     vtkSmartPointer<vtkRenderer>::New();
-  renderer->SetViewport(tangentPicture);
-   renderer->SetBackground(0.5,0.5,0.5);
+  obliqueImageRenderer->SetViewport(tangentPicture);
+   obliqueImageRenderer->SetBackground(0.5,0.5,0.5);
  //    vtkSmartPointer<vtkImageActor> actor = 
  //   vtkSmartPointer<vtkImageActor>::New();
-       vtkImageActor*actor = vtkImageActor::New();
-	   actor->GetMapper()->SetInputData(data);
-	   actor->Update();
+       vtkImageActor*obliqueImageActor = vtkImageActor::New();
+	   obliqueImageActor->GetMapper()->SetInputData(initialObliqueData);
+	   obliqueImageActor->Update();
 
-  renderer->AddActor(actor);
-  renderer->ResetCamera();  
-  window->AddRenderer(renderer);
-  renderer->SetViewPoint(tangentPicture);
-  actor->Update();
+  obliqueImageRenderer->AddActor(obliqueImageActor);
+  obliqueImageRenderer->ResetCamera();  
+  window->AddRenderer(obliqueImageRenderer);
+  obliqueImageRenderer->SetViewPoint(tangentPicture);
+  obliqueImageActor->Update();
 
-
+ 
 
 
 
@@ -209,23 +225,22 @@ int main(int argc, char* argv[])
 
 
 
-
   interactorStyle->setCenterLineOnlyRenderer(centerlineOnlyRender);
   interactorStyle->setVascularRenderer(rendererModel);
-  interactorStyle->setImageRenderer(renderer);
+  interactorStyle->setImageRenderer(obliqueImageRenderer);
   interactorStyle->setCenterLineData(centerline);
   interactorStyle->setOriginalImage(original);
-  interactorStyle->setImageActor(actor);
-  interactorStyle->setCurrentOblique(data);
+  interactorStyle->setImageActor(obliqueImageActor);
+  interactorStyle->setCurrentOblique(initialObliqueData);
 
   //不是把所有点的切片计算出来，可以把这个注释掉
   //interactorStyle->setAllAnglesImages(allImage);
 
   interactor->SetInteractorStyle(interactorStyle);
   interactor->Start();
-  if(data != 0 && data->GetReferenceCount() == 1)
+  if(initialObliqueData != 0 && initialObliqueData->GetReferenceCount() == 1)
   {
-	  data->Delete();
+	  initialObliqueData->Delete();
   }
   return EXIT_SUCCESS;
 }
