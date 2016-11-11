@@ -25,6 +25,10 @@
 #include "AnglePictureUtility.h"
 #include <log4cpp/Category.hh>
 #include <log4cpp/PropertyConfigurator.hh>
+#include <vtkLabeledDataMapper.h>
+#include <vtkPointSource.h>
+#include <vtkActor2D.h>
+#include "Common.h"
 int main(int argc, char* argv[])
 {
 
@@ -38,10 +42,8 @@ int main(int argc, char* argv[])
 		std::cout << "Configure Problem " << f.what() << std::endl;
 		return -1;
 	}
-	log4cpp::Category& rootLog  = log4cpp::Category::getRoot();
-	rootLog.info("程序开始执行");
-	log4cpp::Category& subLog = log4cpp::Category::getInstance(std::string("sub1"));
-	subLog.info("程序开始执行");
+	subLog.info("程序开始执行......");
+	rootLog.info("程序开始执行......");
    // Setup render window
   vtkSmartPointer<vtkRenderWindow> window = 
     vtkSmartPointer<vtkRenderWindow>::New();
@@ -56,6 +58,7 @@ int main(int argc, char* argv[])
   double tangentPicture[4] = {0.0,0.0,0.33,0.5};
   double modelRegin[4]= {0.33,0.5,1.0,1.0};
   double centerlineOnly[4] = {0.0,0.5,0.33,1};
+  double addedInformation[4]={0.33,0.0,1.0,0.5};
 
 
   /*
@@ -104,24 +107,27 @@ int main(int argc, char* argv[])
 
   //读取中心线模型数据
   vtkSmartPointer<vtkXMLPolyDataReader> centerlineModelReader = vtkSmartPointer<vtkXMLPolyDataReader>::New();
-  centerlineModelReader->SetFileName("E:\\model0927centerline.vtp");
+
+  //数据中心线湿地9+
+  //centerlineModelReader->SetFileName("E:\\model0927centerline.vtp");
+  centerlineModelReader->SetFileName("E:\\VMTKCenterlinesOut.vtp");
   centerlineModelReader->Update();
   vtkPolyData* centerline = centerlineModelReader->GetOutput();
   AnglePictureUtility::computeNormalByPoints(centerline);
 
   // Visualize
-  vtkSmartPointer<vtkPolyDataMapper> centerLineMapper =
+  vtkSmartPointer<vtkPolyDataMapper> vascularModelMapper =
     vtkSmartPointer<vtkPolyDataMapper>::New();
-  centerLineMapper->SetInputConnection(vascularModelReader->GetOutputPort());
+  vascularModelMapper->SetInputConnection(vascularModelReader->GetOutputPort());
   vtkSmartPointer<vtkPolyDataMapper> centerlineMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
  //centerlineMapper->SetInputConnection(centerlineModelReader->GetOutputPort());
   centerlineMapper->SetInputData(centerline);
  
-  vtkSmartPointer<vtkActor> actorModel =
+  vtkSmartPointer<vtkActor> actorVascularModel =
     vtkSmartPointer<vtkActor>::New();
-  actorModel->GetProperty()->SetOpacity(0.1);
-  actorModel->GetProperty()->SetColor(0.5,0.5,0.5);
-  actorModel->SetMapper(centerLineMapper);
+  actorVascularModel->GetProperty()->SetOpacity(0.1);
+  actorVascularModel->GetProperty()->SetColor(0.5,0.5,0.5);
+  actorVascularModel->SetMapper(vascularModelMapper);
 
   vtkSmartPointer<vtkActor> centerlineModel = vtkSmartPointer<vtkActor>::New();
   centerlineModel->SetMapper(centerlineMapper);
@@ -131,7 +137,7 @@ int main(int argc, char* argv[])
   double back[3] = {1.0,1.0,1.0};
   rendererModel->SetBackground(back);
   rendererModel->SetViewport(modelRegin);
-  rendererModel->AddActor(actorModel);
+  rendererModel->AddActor(actorVascularModel);
   rendererModel->AddActor(centerlineModel);
   window->AddRenderer(rendererModel);
 
@@ -167,7 +173,8 @@ int main(int argc, char* argv[])
   Vector3 direction(0,0,1);
   AnglePictureUtility::computeOblique(original,direction,fixedPoint,initialObliqueData);
   unordered_map<vtkIdType,vtkImageData*> allImage;
-  AnglePictureUtility::computeAllAngleImages(centerline,allImage,original);
+  //计算所有角度的图片
+ // AnglePictureUtility::computeAllAngleImages(centerline,allImage,original);
 
   int extentr[6];
   double spacingr[6];
@@ -220,9 +227,42 @@ int main(int argc, char* argv[])
   centerlineModelOnlyActor->SetMapper(centerLineMapperOnly);
   vtkSmartPointer<vtkRenderer> centerlineOnlyRender = vtkSmartPointer<vtkRenderer>::New();
   centerlineOnlyRender->AddActor(centerlineModelOnlyActor);
+
+
+
+
+
+  /**
+  *
+  vtkSmartPointer<vtkLabeledDataMapper> labelMapper = 
+    vtkSmartPointer<vtkLabeledDataMapper>::New();
+  labelMapper->SetInputData(centerline);
+  vtkSmartPointer<vtkActor2D> labelActor = 
+    vtkSmartPointer<vtkActor2D>::New();
+  labelActor->SetMapper(labelMapper);
+  centerlineOnlyRender->AddActor2D(labelActor);
+  */
+
   centerlineOnlyRender->SetViewport(centerlineOnly);
   window->AddRenderer(centerlineOnlyRender);
   
+
+
+
+
+
+
+
+  //在右下方格里面显示额外的信息
+ 
+
+
+
+
+
+
+
+
 
   
   interactorStyle->setCenterLineOnlyRenderer(centerlineOnlyRender);
@@ -235,6 +275,14 @@ int main(int argc, char* argv[])
 
   //不是把所有点的切片计算出来，可以把这个注释掉
   //interactorStyle->setAllAnglesImages(allImage);
+
+
+
+
+
+
+
+
 
   interactor->SetInteractorStyle(interactorStyle);
   interactor->Start();

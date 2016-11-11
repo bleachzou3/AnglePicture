@@ -14,6 +14,10 @@
 #include <vtkDoubleArray.h>
 #include <vtkCursor2D.h>
 #include <vtkProperty.h>
+#include <log4cpp/Category.hh>
+#include <log4cpp/PropertyConfigurator.hh>
+extern log4cpp::Category& rootLog;
+extern log4cpp::Category& subLog ;
 vtkStandardNewMacro(InteractorStyleRollBall);
 InteractorStyleRollBall::InteractorStyleRollBall()
 {
@@ -77,10 +81,31 @@ void InteractorStyleRollBall::OnLeftButtonDown()
 			showCursor = true;
 		}
 	}
-
+	getCenterLinePointId();
 	vtkInteractorStyleTrackballCamera::OnLeftButtonDown();
 }
 
+vtkIdType InteractorStyleRollBall::getCenterLinePointId()
+{
+	char buffer[100];
+	if(this->GetCurrentRenderer() == centerLineOnlyRenderer)
+	{
+	   this->PointPicker->Pick(this->Interactor->GetEventPosition()[0],
+                 this->Interactor->GetEventPosition()[1],
+                 0,  // always zero.
+				 this->GetCurrentRenderer());
+	    if(this->PointPicker->GetPointId() >= 0)
+		{
+			int id = this->PointPicker->GetPointId();
+			sprintf(buffer,"current point id is %d",id);
+			rootLog.info(buffer);
+			subLog.info(buffer);
+			return id;
+		}
+
+	}
+	return -1;
+}
 void InteractorStyleRollBall::OnKeyPress()
 {
 	  vtkRenderWindowInteractor *rwi = this->Interactor;

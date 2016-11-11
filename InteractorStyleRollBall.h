@@ -94,6 +94,9 @@ private:
 
 	//实现两边同步操作
 	void simultaneousOrientation();
+
+	//在只显示中心线的renderer区域内点击，获得point的id,如果没有点击获得，就返回-1;
+	vtkIdType getCenterLinePointId();
 };
 
 #endif
