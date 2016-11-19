@@ -207,6 +207,8 @@ void InteractorStyleRollBall::changePicture(vtkIdType _id,double* fixedPoint)
 	vtkImageData *oldOblique = currentOblique;
     currentOblique = vtkImageData::New();	
 	double* normal = centerLineData->GetPointData()->GetArray(AnglePictureUtility::OBLIQUE_NORMAL.c_str())->GetTuple(_id);
+	//测试一下都取一个确定的是什么结果
+	//double* normal = centerLineData->GetPointData()->GetArray(AnglePictureUtility::OBLIQUE_NORMAL.c_str())->GetTuple(117);
 	Vector3 normalV(normal[0],normal[1],normal[2]);
 	Vector3 fixedPointV(fixedPoint[0],fixedPoint[1],fixedPoint[2]);
 	AnglePictureUtility::computeOblique(originalImage,normalV,fixedPointV,currentOblique);	

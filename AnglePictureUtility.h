@@ -25,6 +25,8 @@ public:
 	*images里面vtkImageData的销毁交给调用者
 	*/
 	static void computeAllAngleImages(vtkPolyData*data,unordered_map<vtkIdType,vtkImageData*>& images,vtkImageData* originalImage);
+
+
 	static const string  OBLIQUE_NORMAL;
 	static const string  MAXIMUM_INSCRIBED_SPHERE_RADIUS;                          
 };

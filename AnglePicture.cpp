@@ -28,7 +28,12 @@
 #include <vtkLabeledDataMapper.h>
 #include <vtkPointSource.h>
 #include <vtkActor2D.h>
+#include <vtkCellArray.h>
 #include "Common.h"
+#include <vtkPolyLine.h>
+#include <vtkLine.h>
+#include <vtkTriangleFilter.h>
+#include <vtkExtractEdges.h>
 int main(int argc, char* argv[])
 {
 
@@ -112,8 +117,64 @@ int main(int argc, char* argv[])
   //centerlineModelReader->SetFileName("E:\\model0927centerline.vtp");
   centerlineModelReader->SetFileName("E:\\VMTKCenterlinesOut.vtp");
   centerlineModelReader->Update();
+
+
+
+
+
   vtkPolyData* centerline = centerlineModelReader->GetOutput();
+  cout << "numberofCells" <<centerline->GetNumberOfCells()<< endl;
+  cout << "numberofPoints" << centerline->GetNumberOfPoints() << endl;
+  centerline->GetLines()->InitTraversal();
+  vtkSmartPointer<vtkIdList> idList = vtkSmartPointer<vtkIdList>::New();
+
+  //获得某一段内的所有点
+  /**
+  centerline->GetCellPoints(0,idList);
+  for(vtkIdType pointId = 0; pointId < idList->GetNumberOfIds(); pointId++)
+      {
+      std::cout << idList->GetId(pointId) << " ";
+      }
+*/
+  //遍历一个血管中心线所有图元，每一个图元是一个vtkPolyLine或者是vtkLine，然后遍历每个图元里的所有点
+  /**
+  while(centerline->GetLines()->GetNextCell(idList))
+    {
+    std::cout << "Line has " << idList->GetNumberOfIds() << " points." << std::endl;
+ 
+    for(vtkIdType pointId = 0; pointId < idList->GetNumberOfIds(); pointId++)
+      {
+      std::cout << idList->GetId(pointId) << " ";
+      }
+    std::cout << std::endl;
+    }
+	*/
+   
+
+  //这种方法是失败的
+  /**
+    vtkSmartPointer<vtkTriangleFilter> triangleFilter =
+      vtkSmartPointer<vtkTriangleFilter>::New();
+	triangleFilter->SetInputData(centerline);
+  triangleFilter->Update();
+
+  vtkSmartPointer<vtkExtractEdges> extractEdges =
+    vtkSmartPointer<vtkExtractEdges>::New();
+  extractEdges->SetInputConnection(triangleFilter->GetOutputPort());
+  extractEdges->Update();
+
+  vtkSmartPointer<vtkPolyData> mesh = extractEdges->GetOutput();
+  cout <<"mesh.............."<< mesh->GetNumberOfPoints()<<endl;
+  cout <<"mesh............." << mesh->GetNumberOfCells()<<endl;
+  cout << "mesh............." << mesh->GetCellType(2) << endl;
+  */
+   
+
+
+
+
   AnglePictureUtility::computeNormalByPoints(centerline);
+  
 
   // Visualize
   vtkSmartPointer<vtkPolyDataMapper> vascularModelMapper =
