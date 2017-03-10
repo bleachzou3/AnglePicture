@@ -26,6 +26,11 @@ public:
 	*/
 	static void computeAllAngleImages(vtkPolyData*data,unordered_map<vtkIdType,vtkImageData*>& images,vtkImageData* originalImage);
 
+	/**
+	*”√itk bfs«–∏ÓÕºœÒ
+	*/
+	static bool segment(string directoryName,string outputFileName);
+
 
 	static const string  OBLIQUE_NORMAL;
 	static const string  MAXIMUM_INSCRIBED_SPHERE_RADIUS;                          

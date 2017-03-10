@@ -114,8 +114,8 @@ int main(int argc, char* argv[])
   vtkSmartPointer<vtkXMLPolyDataReader> centerlineModelReader = vtkSmartPointer<vtkXMLPolyDataReader>::New();
 
   //数据中心线湿地9+
-  //centerlineModelReader->SetFileName("E:\\model0927centerline.vtp");
-  centerlineModelReader->SetFileName("E:\\VMTKCenterlinesOut.vtp");
+  centerlineModelReader->SetFileName("E:\\model0927centerline.vtp");
+  //centerlineModelReader->SetFileName("E:\\VMTKCenterlinesOut.vtp");
   centerlineModelReader->Update();
 
 
