@@ -144,7 +144,7 @@ void AnglePictureUtility::computeAllAngleImages(vtkPolyData*data,unordered_map<v
 
 }
 
-bool AnglePictureUtility::segment(string directoryName,string outputFileName)
+bool AnglePictureUtility::segment(string directoryName,string outputFileName,int x,int y,int z)
 {
 	// Software Guide : BeginLatex
 //
@@ -325,6 +325,46 @@ bool AnglePictureUtility::segment(string directoryName,string outputFileName)
       std::cout << ex << std::endl;
       return EXIT_FAILURE;
       }
+
+	ImageType* image = reader->GetOutput();
+	//解决图像的大小
+
+	ImageType::RegionType region = image->GetLargestPossibleRegion();  
+    ImageType::SizeType size  = region.GetSize();
+	cout << size[0] << " " << size[1] << " " << size[2] << endl;
+
+	ImageType::IndexType pixelIndex;
+	pixelIndex[0] = x;
+	pixelIndex[1] = y;
+	pixelIndex[2] = z;
+	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // Software Guide : EndCodeSnippet
 // Software Guide : BeginLatex
 //
@@ -357,7 +397,7 @@ bool AnglePictureUtility::segment(string directoryName,string outputFileName)
     try
       {
 // Software Guide : BeginCodeSnippet
-      writer->Update();
+     // writer->Update();
 // Software Guide : EndCodeSnippet
       }
     catch (itk::ExceptionObject &ex)

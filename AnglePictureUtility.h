@@ -29,7 +29,7 @@ public:
 	/**
 	*”√itk bfs«–∏ÓÕºœÒ
 	*/
-	static bool segment(string directoryName,string outputFileName);
+	static bool segment(string directoryName,string outputFileName,int x,int y, int z);
 
 
 	static const string  OBLIQUE_NORMAL;
