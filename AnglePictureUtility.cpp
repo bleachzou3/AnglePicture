@@ -332,13 +332,33 @@ bool AnglePictureUtility::segment(string directoryName,string outputFileName,int
 	ImageType::RegionType region = image->GetLargestPossibleRegion();  
     ImageType::SizeType size  = region.GetSize();
 	cout << size[0] << " " << size[1] << " " << size[2] << endl;
-
+	cout << typeid(ImageType::PixelType).raw_name() << endl;
+	signed short high = -20000;
+	signed short low = 20000;
 	ImageType::IndexType pixelIndex;
+	for(int z = 0; z < size[2] ; z++)
+	{
+		for(int x = 0; x < size[0]; x++)
+		{
+			for(int y = 0; y < size[1]; y++)
+			{
+				pixelIndex[0] = x;
+				pixelIndex[1] = y;
+				pixelIndex[2] = z;
+				high = std::max(high,image->GetPixel(pixelIndex));
+				low = std::min(low,image->GetPixel(pixelIndex));
+			}
+		}
+	}
+	cout << "hight" << high << "   low:" << low << endl;
+	
+
+	
 	pixelIndex[0] = x;
 	pixelIndex[1] = y;
 	pixelIndex[2] = z;
 	
-
+	//½ñÌìÏÂÎç
 
 
 
