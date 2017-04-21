@@ -16,6 +16,7 @@
 #include <itkGDCMSeriesFileNames.h>
 #include <itkImageSeriesReader.h>
 #include <itkImageFileWriter.h>
+#include <itkConnectedThresholdImageFilter.h>
 using namespace itk;
 AnglePictureUtility::AnglePictureUtility()
 {
@@ -144,7 +145,7 @@ void AnglePictureUtility::computeAllAngleImages(vtkPolyData*data,unordered_map<v
 
 }
 
-bool AnglePictureUtility::segment(string directoryName,string outputFileName,int x,int y,int z)
+bool AnglePictureUtility::segment(string directoryName,string outputFileName,int x,int y,int z,float lowerThreshold,float uppperThreshold)
 {
 	// Software Guide : BeginLatex
 //
@@ -336,6 +337,7 @@ bool AnglePictureUtility::segment(string directoryName,string outputFileName,int
 	signed short high = -20000;
 	signed short low = 20000;
 	ImageType::IndexType pixelIndex;
+	/**
 	for(int z = 0; z < size[2] ; z++)
 	{
 		for(int x = 0; x < size[0]; x++)
@@ -351,7 +353,7 @@ bool AnglePictureUtility::segment(string directoryName,string outputFileName,int
 		}
 	}
 	cout << "hight" << high << "   low:" << low << endl;
-	
+	*/
 
 	
 	pixelIndex[0] = x;
@@ -359,9 +361,13 @@ bool AnglePictureUtility::segment(string directoryName,string outputFileName,int
 	pixelIndex[2] = z;
 	
 	//½ñÌìÏÂÎç
+	typedef itk::ConnectedThresholdImageFilter< ImageType,
+		ImageType > ConnectedFilterType;
 
-
-
+	 ConnectedFilterType::Pointer connectedThreshold = ConnectedFilterType::New();
+	 connectedThreshold->SetSeed(pixelIndex);
+	 connectedThreshold->SetLower(lowerThreshold);
+	 connectedThreshold->SetUpper(uppperThreshold);
 
 
 
@@ -404,7 +410,7 @@ bool AnglePictureUtility::segment(string directoryName,string outputFileName,int
     typedef itk::ImageFileWriter< ImageType > WriterType;
     WriterType::Pointer writer = WriterType::New();
 	writer->SetFileName( outputFileName );
-    writer->SetInput( reader->GetOutput() );
+	writer->SetInput( connectedThreshold->GetOutput() );
 // Software Guide : EndCodeSnippet
     std::cout  << "Writing the image as " << std::endl << std::endl;
 	std::cout  << outputFileName << std::endl << std::endl;
