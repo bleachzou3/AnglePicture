@@ -17,6 +17,7 @@
 #include <itkImageSeriesReader.h>
 #include <itkImageFileWriter.h>
 #include <itkConnectedThresholdImageFilter.h>
+#include <itkImageSeriesWriter.h>
 using namespace itk;
 AnglePictureUtility::AnglePictureUtility()
 {
@@ -145,7 +146,7 @@ void AnglePictureUtility::computeAllAngleImages(vtkPolyData*data,unordered_map<v
 
 }
 
-bool AnglePictureUtility::segment(string directoryName,string outputFileName,int x,int y,int z,float lowerThreshold,float uppperThreshold)
+bool AnglePictureUtility::segment(string directoryName,string outputDirectory,int x,int y,int z,float lowerThreshold,float uppperThreshold)
 {
 	// Software Guide : BeginLatex
 //
@@ -337,7 +338,7 @@ bool AnglePictureUtility::segment(string directoryName,string outputFileName,int
 	signed short high = -20000;
 	signed short low = 20000;
 	ImageType::IndexType pixelIndex;
-	/**
+	
 	for(int z = 0; z < size[2] ; z++)
 	{
 		for(int x = 0; x < size[0]; x++)
@@ -347,27 +348,109 @@ bool AnglePictureUtility::segment(string directoryName,string outputFileName,int
 				pixelIndex[0] = x;
 				pixelIndex[1] = y;
 				pixelIndex[2] = z;
+				if(image->GetPixel(pixelIndex) == 964)
+				{
+					cout <<"position:  " << x << "  " << y <<" " <<  z << endl;
+				}
 				high = std::max(high,image->GetPixel(pixelIndex));
 				low = std::min(low,image->GetPixel(pixelIndex));
 			}
 		}
 	}
 	cout << "hight" << high << "   low:" << low << endl;
-	*/
+	
 
 	
 	pixelIndex[0] = x;
 	pixelIndex[1] = y;
 	pixelIndex[2] = z;
-	
+	//打印种子点的灰度值
+	cout << "当前种子点的灰度值" << image->GetPixel(pixelIndex) << endl;
 	//今天下午
 	typedef itk::ConnectedThresholdImageFilter< ImageType,
 		ImageType > ConnectedFilterType;
 
 	 ConnectedFilterType::Pointer connectedThreshold = ConnectedFilterType::New();
+	 connectedThreshold->SetInput(image);
 	 connectedThreshold->SetSeed(pixelIndex);
 	 connectedThreshold->SetLower(lowerThreshold);
 	 connectedThreshold->SetUpper(uppperThreshold);
+	 connectedThreshold->SetReplaceValue(2000);
+	 connectedThreshold->Update();
+
+
+
+
+
+
+
+	  itksys::SystemTools::MakeDirectory( outputDirectory );
+  typedef signed short    OutputPixelType;
+  const unsigned int      OutputDimension = 2;
+  typedef itk::Image< OutputPixelType, OutputDimension >    Image2DType;
+	 typedef itk::ImageSeriesWriter<
+		 ImageType,Image2DType>  SeriesWriterType;
+  // Software Guide : EndCodeSnippet
+  //  Software Guide : BeginLatex
+  //
+  //  We construct a series writer and connect to its input the output from the
+  //  reader. Then we pass the GDCM image IO object in order to be able to write
+  //  the images in DICOM format.
+  //
+  //  the writer filter.  Software Guide : EndLatex
+  // Software Guide : BeginCodeSnippet
+  SeriesWriterType::Pointer seriesWriter = SeriesWriterType::New();
+  seriesWriter->SetInput(connectedThreshold->GetOutput() );
+  seriesWriter->SetImageIO( dicomIO );
+  // Software Guide : EndCodeSnippet
+  //  Software Guide : BeginLatex
+  //
+  //  It is time now to setup the GDCMSeriesFileNames to generate new filenames
+  //  using another output directory.  Then simply pass those newly generated
+  //  files to the series writer.
+  //
+  //  \index{GDCMSeriesFileNames!SetOutputDirectory()}
+  //  \index{GDCMSeriesFileNames!GetOutputFileNames()}
+  //  \index{ImageSeriesWriter!SetFileNames()}
+  //
+  //  Software Guide : EndLatex
+  // Software Guide : BeginCodeSnippet
+  nameGenerator->SetOutputDirectory( outputDirectory );
+  seriesWriter->SetFileNames( nameGenerator->GetOutputFileNames() );
+  // Software Guide : EndCodeSnippet
+  //  Software Guide : BeginLatex
+  //
+  //  The following line of code is extremely important for this process to work
+  //  correctly.  The line is taking the MetaDataDictionary from the input reader
+  //  and passing it to the output writer. This step is important because the
+  //  MetaDataDictionary contains all the entries of the input DICOM header.
+  //
+  //  \index{itk::ImageSeriesReader!GetMetaDataDictionaryArray()}
+  //  \index{itk::ImageSeriesWriter!SetMetaDataDictionaryArray()}
+  //
+  //  Software Guide : EndLatex
+  // Software Guide : BeginCodeSnippet
+  seriesWriter->SetMetaDataDictionaryArray(
+                        reader->GetMetaDataDictionaryArray() );
+  // Software Guide : EndCodeSnippet
+  // Software Guide : BeginLatex
+  //
+  // Finally we trigger the writing process by invoking the \code{Update()} method
+  // in the series writer. We place this call inside a \code{try/catch} block,
+  // in case any exception is thrown during the writing process.
+  //
+  // Software Guide : EndLatex
+  // Software Guide : BeginCodeSnippet
+  try
+    {
+    seriesWriter->Update();
+    }
+  catch( itk::ExceptionObject & excp )
+    {
+    std::cerr << "Exception thrown while writing the series " << std::endl;
+    std::cerr << excp << std::endl;
+    return EXIT_FAILURE;
+    }
 
 
 
@@ -384,53 +467,6 @@ bool AnglePictureUtility::segment(string directoryName,string outputFileName,int
 
 
 
-
-
-
-
-
-
-
-// Software Guide : EndCodeSnippet
-// Software Guide : BeginLatex
-//
-// At this point, we have a volumetric image in memory that we can access by
-// invoking the \code{GetOutput()} method of the reader.
-//
-// Software Guide : EndLatex
-// Software Guide : BeginLatex
-//
-// We proceed now to save the volumetric image in another file, as specified by
-// the user in the command line arguments of this program. Thanks to the
-// ImageIO factory mechanism, only the filename extension is needed to identify
-// the file format in this case.
-//
-// Software Guide : EndLatex
-// Software Guide : BeginCodeSnippet
-    typedef itk::ImageFileWriter< ImageType > WriterType;
-    WriterType::Pointer writer = WriterType::New();
-	writer->SetFileName( outputFileName );
-	writer->SetInput( connectedThreshold->GetOutput() );
-// Software Guide : EndCodeSnippet
-    std::cout  << "Writing the image as " << std::endl << std::endl;
-	std::cout  << outputFileName << std::endl << std::endl;
-// Software Guide : BeginLatex
-//
-// The process of writing the image is initiated by invoking the
-// \code{Update()} method of the writer.
-//
-// Software Guide : EndLatex
-    try
-      {
-// Software Guide : BeginCodeSnippet
-     // writer->Update();
-// Software Guide : EndCodeSnippet
-      }
-    catch (itk::ExceptionObject &ex)
-      {
-      std::cout << ex << std::endl;
-      return EXIT_FAILURE;
-      }
     }
   catch (itk::ExceptionObject &ex)
     {

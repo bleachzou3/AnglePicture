@@ -49,7 +49,7 @@ int main(int argc, char* argv[])
 	}
 	subLog.info("程序开始执行......");
 	rootLog.info("程序开始执行......");
-	AnglePictureUtility::segment("E:\\patientData\\WU_AMAO","",0,0,0,300,800);
+	AnglePictureUtility::segment("E:\\patientData\\WU_AMAO","E:\\patientData\\WU_AMAO_SEGMENTED",287,252,197,300,1000);
   
   return EXIT_SUCCESS;
 }
