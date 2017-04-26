@@ -49,7 +49,8 @@ int main(int argc, char* argv[])
 	}
 	subLog.info("程序开始执行......");
 	rootLog.info("程序开始执行......");
-	AnglePictureUtility::segment("E:\\patientData\\WU_AMAO","E:\\patientData\\WU_AMAO_SEGMENTED",287,252,197,300,1000);
+	//AnglePictureUtility::segment("E:\\patientData\\WU_AMAO","E:\\patientData\\WU_AMAO_SEGMENTED",287,252,197,300,1000);
+	AnglePictureUtility::coronaryVoxelRender("E:\\patientData\\WU_AMAO_SEGMENTED");
   
   return EXIT_SUCCESS;
 }

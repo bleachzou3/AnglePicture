@@ -31,6 +31,11 @@ public:
 	*/
 	static bool segment(string directoryName,string outputFileName,int x,int y, int z,float lowerThreshold,float uppperThreshold);
 
+	/**
+	*选择存放已经切割好的血管的文件夹，显示血管
+	*/
+	static void coronaryVoxelRender(string directoryName);
+
 
 	static const string  OBLIQUE_NORMAL;
 	static const string  MAXIMUM_INSCRIBED_SPHERE_RADIUS;                          
