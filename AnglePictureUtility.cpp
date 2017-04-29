@@ -37,6 +37,22 @@
 #include <vtkImageShiftScale.h>
 #include <vtkImageCast.h>
 #include <vtkFixedPointVolumeRayCastMapper.h>
+#include <vtkImageAccumulate.h>
+#include <vtkBarChartActor.h>
+#include <vtkActor.h>
+#include <vtkBarChartActor.h>
+#include <vtkFieldData.h>
+#include <vtkImageAccumulate.h>
+#include <vtkImageData.h>
+#include <vtkIntArray.h>
+#include <vtkJPEGReader.h>
+#include <vtkLegendBoxActor.h>
+#include <vtkProperty2D.h>
+#include <vtkRenderer.h>
+#include <vtkRenderWindow.h>
+#include <vtkRenderWindowInteractor.h>
+#include <vtkSmartPointer.h>
+#include <vtkTextProperty.h>
 using namespace itk;
 AnglePictureUtility::AnglePictureUtility()
 {
@@ -367,7 +383,7 @@ bool AnglePictureUtility::segment(string directoryName,string outputDirectory,in
 				pixelIndex[0] = x;
 				pixelIndex[1] = y;
 				pixelIndex[2] = z;
-				if(image->GetPixel(pixelIndex) == 964)
+				if(image->GetPixel(pixelIndex) == 1252)
 				{
 					cout <<"position:  " << x << "  " << y <<" " <<  z << endl;
 				}
@@ -383,8 +399,13 @@ bool AnglePictureUtility::segment(string directoryName,string outputDirectory,in
 	pixelIndex[0] = x;
 	pixelIndex[1] = y;
 	pixelIndex[2] = z;
+	
+	
+
+	
 	//打印种子点的灰度值
-	cout << "当前种子点的灰度值" << image->GetPixel(pixelIndex) << endl;
+	cout << "当前种子点的灰度值 pixelIndex" << image->GetPixel(pixelIndex) << endl;
+
 	//今天下午
 	typedef itk::ConnectedThresholdImageFilter< ImageType,
 		ImageType > ConnectedFilterType;
@@ -596,4 +617,111 @@ void AnglePictureUtility::coronaryVoxelRender(string directoryName)
 
 	renWin->Render();
 	iren->Start();
+}
+
+void AnglePictureUtility::showHistogram(string directoryName)
+{
+   vtkSmartPointer<vtkDICOMImageReader> reader =
+      vtkSmartPointer<vtkDICOMImageReader>::New();
+   reader->SetDirectoryName(directoryName.c_str());
+   reader->Update();
+
+   vtkImageData * image = reader->GetOutput();
+
+   //把灰度值的范围找出来,遍历访问就行了
+    int dims[3];
+	image->GetDimensions(dims);
+	signed short top = -3000;
+	signed short down = 4000;
+    for(int k = 0; k < dims[2]; k++)
+	{
+		for(int j = 0; j < dims[1]; j++)
+		{
+			for(int i = 0; i < dims[0]; i++)
+			{
+				signed short* pixel = (signed  short*)image->GetScalarPointer(i,j,k);
+				//cout << pixel[0] << endl;
+				top = std::max(pixel[0],top);
+				down = std::min(pixel[0],down);
+			}
+		}
+	}
+	cout << "top: " << top << "  down: " << down << endl;
+	int bins   = 10;
+	int comps  = 1;
+
+	vtkSmartPointer<vtkImageAccumulate> histogram =
+		vtkSmartPointer<vtkImageAccumulate>::New();
+	histogram->SetInputData(image);
+	histogram->SetComponentExtent(0, bins-1, 0, 0, 0, 0);
+	histogram->SetComponentOrigin(down, 0, 0);
+	histogram->SetComponentSpacing((top - down)/bins, 0, 0);
+	histogram->Update();
+
+	int* output = static_cast<int*>(histogram->GetOutput()->GetScalarPointer());
+
+	vtkSmartPointer<vtkIntArray> frequencies = 
+		vtkSmartPointer<vtkIntArray>::New();
+	frequencies->SetNumberOfComponents(1);
+
+	for(int j = 0; j < bins; ++j)
+	{
+		for(int i=0; i<comps; i++)
+		{
+			cout << *output << endl;
+			frequencies->InsertNextTuple1(*output++);
+		}
+	}
+
+	vtkSmartPointer<vtkDataObject> dataObject = 
+		vtkSmartPointer<vtkDataObject>::New();
+	dataObject->GetFieldData()->AddArray( frequencies );
+
+	vtkSmartPointer<vtkBarChartActor> barChart = 
+		vtkSmartPointer<vtkBarChartActor>::New();
+	barChart->SetInput(dataObject);
+	barChart->SetTitle("Histogram");
+	barChart->GetPositionCoordinate()->SetValue(0.05,0.05,0.0);
+	barChart->GetPosition2Coordinate()->SetValue(0.95,0.95,0.0);
+	barChart->GetProperty()->SetColor(0,0,0);
+	barChart->GetTitleTextProperty()->SetColor(0,0,0);
+	barChart->GetLabelTextProperty()->SetColor(0,0,0);
+	barChart->GetLegendActor()->SetNumberOfEntries(dataObject->GetFieldData()->GetArray(0)->GetNumberOfTuples());
+	barChart->LegendVisibilityOn();
+	barChart->LabelVisibilityOn();
+
+	double colors[3][3] = {
+		{ 1, 0, 0 },
+		{ 0, 1, 0 },
+		{ 0, 0, 1 } };
+
+	int count = 0;
+	for( int i = 0; i < bins; ++i )
+	{
+		for( int j = 0; j < comps; ++j )
+		{
+			barChart->SetBarColor( count++, colors[j] );
+		}
+	}
+
+	vtkSmartPointer<vtkRenderer> renderer = 
+		vtkSmartPointer<vtkRenderer>::New();
+	renderer->AddActor(barChart);
+	renderer->SetBackground(1.0, 1.0, 1.0);
+
+	vtkSmartPointer<vtkRenderWindow> renderWindow = 
+		vtkSmartPointer<vtkRenderWindow>::New();
+	renderWindow->AddRenderer(renderer);
+	renderWindow->SetSize(640, 480);
+	renderWindow->Render();
+	renderWindow->SetWindowName("ImageAccumulateExample");
+
+	vtkSmartPointer<vtkRenderWindowInteractor> interactor =
+		vtkSmartPointer<vtkRenderWindowInteractor>::New();
+	interactor->SetRenderWindow(renderWindow);
+
+	interactor->Initialize();
+	interactor->Start();
+
+	
 }

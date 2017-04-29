@@ -36,6 +36,11 @@ public:
 	*/
 	static void coronaryVoxelRender(string directoryName);
 
+	/**
+	*œ‘ æhistogram
+	*/
+	static void showHistogram(string directoryName);
+
 
 	static const string  OBLIQUE_NORMAL;
 	static const string  MAXIMUM_INSCRIBED_SPHERE_RADIUS;                          
