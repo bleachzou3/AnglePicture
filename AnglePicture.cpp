@@ -49,7 +49,7 @@ int main(int argc, char* argv[])
 	}
 	subLog.info("程序开始执行......");
 	rootLog.info("程序开始执行......");
-	AnglePictureUtility::segment("E:\\patientData\\WU_AMAO","",0,0,0);
+	//AnglePictureUtility::segment("E:\\patientData\\WU_AMAO","",0,0,0);
    // Setup render window
   vtkSmartPointer<vtkRenderWindow> window = 
     vtkSmartPointer<vtkRenderWindow>::New();

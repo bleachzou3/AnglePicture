@@ -3,8 +3,18 @@ cmake_minimum_required(VERSION 2.8)
 
 PROJECT(AnglePicture)
 
-find_package(VTK REQUIRED)
-find_package(ITK REQUIRED)
+find_package(ITK REQUIRED NO_MODULE)
+
+#message(STATUS ${ITK_DIR})
+#message("hhhhhhhhhhhhhhhhhhhhh")
+find_package(VTK REQUIRED NO_MODULE)
+#set(VTK_DIR D:/VTK_H/lib/cmake/vtk-6.3)
+#set (VTK_USE_FILE D:/VTK_H/lib/cmake/vtk-6.3/UseVTK.cmake)
+
+#set(ITK_DIR E:/ITK_4.11/lib/cmake/ITK-4.11)
+
+
+#set (ITK_USE_FILE E:/ITK_4.11/lib/cmake/ITK-4.11/UseITK.cmake)
 include(${VTK_USE_FILE})
 include(${ITK_USE_FILE})
 include_directories(
@@ -25,7 +35,7 @@ set(LinkedLog log4cpp)
   )
 
 MESSAGE(STATUS "{VTK_USE_FILE}" ${VTK_USE_FILE})
-MESSAGE(STATUS "{ITK_USE_FILE}" ${VTK_USE_FILE})
+MESSAGE(STATUS "{ITK_USE_FILE}" ${ITK_USE_FILE})
 MESSAGE(STATUS "{CMAKE_CURRENT_SOURCE_DIR}" ${CMAKE_CURRENT_SOURCE_DIR})
 MESSAGE(STATUS "{CMAKE_CURRENT_BINARY_DIR}" ${CMAKE_CURRENT_BINARY_DIR})
 

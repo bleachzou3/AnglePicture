@@ -49,8 +49,11 @@ int main(int argc, char* argv[])
 	}
 	subLog.info("程序开始执行......");
 	rootLog.info("程序开始执行......");
-	AnglePictureUtility::segment("E:\\patientData\\WU_AMAO","E:\\patientData\\WU_AMAO_SEGMENTED",307,166,121,300,1000);
+	//AnglePictureUtility::segment("E:\\patientData\\WU_AMAO","E:\\patientData\\WU_AMAO_SEGMENTED",307,166,121,300,1000);
 	//AnglePictureUtility::coronaryVoxelRender("E:\\patientData\\WU_AMAO_SEGMENTED");
 	//AnglePictureUtility::showHistogram("E:\\patientData\\WU_AMAO");
+	//AnglePictureUtility::SegmentBloodVessels("E:\\patientData\\WU_AMAO","E:\\patientData\\WU_AMAO_SegmentBloodVessels",0,0,0);
+	//AnglePictureUtility::WatershedSegmentation("E:\\patientData\\WU_AMAO","E:\\patientData\\WU_AMAO_WatershedSegmentation");
+	AnglePictureUtility::SegmentBloodVesselsFromVti("E:\\patientData\\WU_AMAO_image_volume_voi.vti","E:\\patientData\\WU_AMAO_image_volume.vti",0,0,0);
   return EXIT_SUCCESS;
 }

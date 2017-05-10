@@ -53,6 +53,19 @@
 #include <vtkRenderWindowInteractor.h>
 #include <vtkSmartPointer.h>
 #include <vtkTextProperty.h>
+
+#include <itkHessian3DToVesselnessMeasureImageFilter.h>
+#include <itkHessianRecursiveGaussianImageFilter.h>
+#include <itkWatershedImageFilter.h>
+#include <itkScalarToRGBPixelFunctor.h>
+#include <itkUnaryFunctorImageFilter.h>
+#include <itkGradientMagnitudeRecursiveGaussianImageFilter.h>
+#include <itkGradientMagnitudeImageFilter.h>
+#include <vtkXMLImageDataReader.h>
+#include <itkVTKImageToImageFilter.h>
+#include <itkImageToVTKImageFilter.h>
+#include <vtkXMLImageDataWriter.h>
+
 using namespace itk;
 AnglePictureUtility::AnglePictureUtility()
 {
@@ -725,3 +738,708 @@ void AnglePictureUtility::showHistogram(string directoryName)
 
 	
 }
+
+void AnglePictureUtility::SegmentBloodVesselsWithMultiScaleHessianBasedMeasure(string inputDirectoryName,string outputDirectoryName)
+{
+	// Software Guide : BeginCodeSnippet
+  typedef signed short    PixelType;
+  const unsigned int      Dimension = 3;
+  typedef itk::Image< PixelType, Dimension >         ImageType;
+
+  typedef itk::ImageSeriesReader< ImageType >        ReaderType;
+  ReaderType::Pointer reader = ReaderType::New();
+
+  typedef itk::GDCMImageIO       ImageIOType;
+  ImageIOType::Pointer dicomIO = ImageIOType::New();
+  reader->SetImageIO( dicomIO );
+
+  typedef itk::GDCMSeriesFileNames NamesGeneratorType;
+  NamesGeneratorType::Pointer nameGenerator = NamesGeneratorType::New();
+  nameGenerator->SetUseSeriesDetails( true );
+  nameGenerator->AddSeriesRestriction("0008|0021" );
+  nameGenerator->SetDirectory( inputDirectoryName );
+// Software Guide : EndCodeSnippet
+  try
+    {
+    std::cout << std::endl << "The directory: " << std::endl;
+	std::cout << std::endl << inputDirectoryName << std::endl << std::endl;
+    std::cout << "Contains the following DICOM Series: ";
+    std::cout << std::endl << std::endl;
+
+    typedef std::vector< std::string >    SeriesIdContainer;
+    const SeriesIdContainer & seriesUID = nameGenerator->GetSeriesUIDs();
+    SeriesIdContainer::const_iterator seriesItr = seriesUID.begin();
+    SeriesIdContainer::const_iterator seriesEnd = seriesUID.end();
+    while( seriesItr != seriesEnd )
+      {
+      std::cout << seriesItr->c_str() << std::endl;
+      ++seriesItr;
+      }
+
+    std::string seriesIdentifier;
+
+      seriesIdentifier = seriesUID.begin()->c_str();
+
+    std::cout << std::endl << std::endl;
+    std::cout << "Now reading series: " << std::endl << std::endl;
+    std::cout << seriesIdentifier << std::endl;
+    std::cout << std::endl << std::endl;
+
+    typedef std::vector< std::string >   FileNamesContainer;
+    FileNamesContainer fileNames;
+    fileNames = nameGenerator->GetFileNames( seriesIdentifier );
+
+    reader->SetFileNames( fileNames );
+
+    try
+      {
+      reader->Update();
+      }
+    catch (itk::ExceptionObject &ex)
+      {
+      std::cout << ex << std::endl;
+ 
+      }
+
+	ImageType* image = reader->GetOutput();
+	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	itksys::SystemTools::MakeDirectory( outputDirectoryName );
+  typedef signed short    OutputPixelType;
+  const unsigned int      OutputDimension = 2;
+  typedef itk::Image< OutputPixelType, OutputDimension >    Image2DType;
+	 typedef itk::ImageSeriesWriter<
+		 ImageType,Image2DType>  SeriesWriterType;
+  // Software Guide : EndCodeSnippet
+  //  Software Guide : BeginLatex
+  //
+  //  We construct a series writer and connect to its input the output from the
+  //  reader. Then we pass the GDCM image IO object in order to be able to write
+  //  the images in DICOM format.
+  //
+  //  the writer filter.  Software Guide : EndLatex
+  // Software Guide : BeginCodeSnippet
+  SeriesWriterType::Pointer seriesWriter = SeriesWriterType::New();
+  //seriesWriter->SetInput(connectedThreshold->GetOutput() );
+  seriesWriter->SetImageIO( dicomIO );
+  // Software Guide : EndCodeSnippet
+  //  Software Guide : BeginLatex
+  //
+  //  It is time now to setup the GDCMSeriesFileNames to generate new filenames
+  //  using another output directory.  Then simply pass those newly generated
+  //  files to the series writer.
+  //
+  //  \index{GDCMSeriesFileNames!SetOutputDirectory()}
+  //  \index{GDCMSeriesFileNames!GetOutputFileNames()}
+  //  \index{ImageSeriesWriter!SetFileNames()}
+  //
+  //  Software Guide : EndLatex
+  // Software Guide : BeginCodeSnippet
+  nameGenerator->SetOutputDirectory( outputDirectoryName );
+  seriesWriter->SetFileNames( nameGenerator->GetOutputFileNames() );
+  // Software Guide : EndCodeSnippet
+  //  Software Guide : BeginLatex
+  //
+  //  The following line of code is extremely important for this process to work
+  //  correctly.  The line is taking the MetaDataDictionary from the input reader
+  //  and passing it to the output writer. This step is important because the
+  //  MetaDataDictionary contains all the entries of the input DICOM header.
+  //
+  //  \index{itk::ImageSeriesReader!GetMetaDataDictionaryArray()}
+  //  \index{itk::ImageSeriesWriter!SetMetaDataDictionaryArray()}
+  //
+  //  Software Guide : EndLatex
+  // Software Guide : BeginCodeSnippet
+  seriesWriter->SetMetaDataDictionaryArray(
+                        reader->GetMetaDataDictionaryArray() );
+  // Software Guide : EndCodeSnippet
+  // Software Guide : BeginLatex
+  //
+  // Finally we trigger the writing process by invoking the \code{Update()} method
+  // in the series writer. We place this call inside a \code{try/catch} block,
+  // in case any exception is thrown during the writing process.
+  //
+  // Software Guide : EndLatex
+  // Software Guide : BeginCodeSnippet
+  try
+    {
+    seriesWriter->Update();
+    }
+  catch( itk::ExceptionObject & excp )
+    {
+    std::cerr << "Exception thrown while writing the series " << std::endl;
+    std::cerr << excp << std::endl;
+    return;
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    }
+  catch (itk::ExceptionObject &ex)
+    {
+    std::cout << ex << std::endl;
+    return ;
+    }
+  // Software Guide : BeginLatex
+  //
+  // Note that in addition to writing the volumetric image to a file we could
+  // have used it as the input for any 3D processing pipeline. Keep in mind that
+  // DICOM is simply a file format and a network protocol. Once the image data
+  // has been loaded into memory, it behaves as any other volumetric dataset that
+  // you could have loaded from any other file format.
+  //
+  // Software Guide : EndLatex
+
+}
+
+void AnglePictureUtility::SegmentBloodVessels(string inputDirectoryName,string outputDirectoryName,double sigma,double alpha1,double alpha2)
+{
+	// Software Guide : BeginCodeSnippet
+  typedef signed short    PixelType;
+  const unsigned int      Dimension = 3;
+  typedef itk::Image< PixelType, Dimension >         ImageType;
+
+  typedef itk::ImageSeriesReader< ImageType >        ReaderType;
+  ReaderType::Pointer reader = ReaderType::New();
+
+  typedef itk::GDCMImageIO       ImageIOType;
+  ImageIOType::Pointer dicomIO = ImageIOType::New();
+  reader->SetImageIO( dicomIO );
+
+  typedef itk::GDCMSeriesFileNames NamesGeneratorType;
+  NamesGeneratorType::Pointer nameGenerator = NamesGeneratorType::New();
+  nameGenerator->SetUseSeriesDetails( true );
+  nameGenerator->AddSeriesRestriction("0008|0021" );
+  nameGenerator->SetDirectory( inputDirectoryName );
+// Software Guide : EndCodeSnippet
+  try
+    {
+    std::cout << std::endl << "The directory: " << std::endl;
+	std::cout << std::endl << inputDirectoryName << std::endl << std::endl;
+    std::cout << "Contains the following DICOM Series: ";
+    std::cout << std::endl << std::endl;
+
+    typedef std::vector< std::string >    SeriesIdContainer;
+    const SeriesIdContainer & seriesUID = nameGenerator->GetSeriesUIDs();
+    SeriesIdContainer::const_iterator seriesItr = seriesUID.begin();
+    SeriesIdContainer::const_iterator seriesEnd = seriesUID.end();
+    while( seriesItr != seriesEnd )
+      {
+      std::cout << seriesItr->c_str() << std::endl;
+      ++seriesItr;
+      }
+
+    std::string seriesIdentifier;
+
+      seriesIdentifier = seriesUID.begin()->c_str();
+
+    std::cout << std::endl << std::endl;
+    std::cout << "Now reading series: " << std::endl << std::endl;
+    std::cout << seriesIdentifier << std::endl;
+    std::cout << std::endl << std::endl;
+
+    typedef std::vector< std::string >   FileNamesContainer;
+    FileNamesContainer fileNames;
+    fileNames = nameGenerator->GetFileNames( seriesIdentifier );
+
+    reader->SetFileNames( fileNames );
+
+    try
+      {
+      reader->Update();
+      }
+    catch (itk::ExceptionObject &ex)
+      {
+      std::cout << ex << std::endl;
+ 
+      }
+
+	ImageType* image = reader->GetOutput();
+	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	 cout << "2222222222222222222222222222222222222222222" << endl;
+	typedef itk::HessianRecursiveGaussianImageFilter< ImageType >
+    HessianFilterType;
+  HessianFilterType::Pointer hessianFilter = HessianFilterType::New();
+  hessianFilter->SetInput( image );
+  hessianFilter->Update();
+  cout << "1111111111111111111111111111111111111" << endl;
+
+  if( sigma )
+    {
+    hessianFilter->SetSigma( sigma  );
+    }
+  typedef itk::Hessian3DToVesselnessMeasureImageFilter< PixelType >
+    VesselnessMeasureFilterType;
+  VesselnessMeasureFilterType::Pointer vesselnessFilter = VesselnessMeasureFilterType::New();
+  vesselnessFilter->SetInput( hessianFilter->GetOutput() );
+  if( alpha1 )
+    {
+    vesselnessFilter->SetAlpha1( alpha1  );
+    }
+  if( alpha2 )
+    {
+    vesselnessFilter->SetAlpha2(  alpha2 );
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  cout << "hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh"  << endl;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	itksys::SystemTools::MakeDirectory( outputDirectoryName );
+  typedef signed short    OutputPixelType;
+  const unsigned int      OutputDimension = 2;
+  typedef itk::Image< OutputPixelType, OutputDimension >    Image2DType;
+	 typedef itk::ImageSeriesWriter<
+		 ImageType,Image2DType>  SeriesWriterType;
+
+  SeriesWriterType::Pointer seriesWriter = SeriesWriterType::New();
+  seriesWriter->SetInput(vesselnessFilter->GetOutput());
+  seriesWriter->SetImageIO( dicomIO );
+
+  nameGenerator->SetOutputDirectory( outputDirectoryName );
+  seriesWriter->SetFileNames( nameGenerator->GetOutputFileNames() );
+
+  seriesWriter->SetMetaDataDictionaryArray(
+                        reader->GetMetaDataDictionaryArray() );
+
+  try
+    {
+    seriesWriter->Update();
+    }
+  catch( itk::ExceptionObject & excp )
+    {
+    std::cerr << "Exception thrown while writing the series " << std::endl;
+    std::cerr << excp << std::endl;
+    return;
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    }
+  catch (itk::ExceptionObject &ex)
+    {
+    std::cout << ex << std::endl;
+    return ;
+    }
+
+}
+
+void   AnglePictureUtility::WatershedSegmentation(string inputDirectoryName,string outputDirectoryName)
+{
+	
+  typedef signed short    PixelType;
+  const unsigned int      Dimension = 3;
+  typedef itk::Image< PixelType, Dimension >         ImageType;
+
+  typedef itk::ImageSeriesReader< ImageType >        ReaderType;
+  ReaderType::Pointer reader = ReaderType::New();
+
+  typedef itk::GDCMImageIO       ImageIOType;
+  ImageIOType::Pointer dicomIO = ImageIOType::New();
+  reader->SetImageIO( dicomIO );
+
+  typedef itk::GDCMSeriesFileNames NamesGeneratorType;
+  NamesGeneratorType::Pointer nameGenerator = NamesGeneratorType::New();
+  nameGenerator->SetUseSeriesDetails( true );
+  nameGenerator->AddSeriesRestriction("0008|0021" );
+  nameGenerator->SetDirectory( inputDirectoryName );
+// Software Guide : EndCodeSnippet
+  try
+    {
+    std::cout << std::endl << "The directory: " << std::endl;
+	std::cout << std::endl << inputDirectoryName << std::endl << std::endl;
+    std::cout << "Contains the following DICOM Series: ";
+    std::cout << std::endl << std::endl;
+
+    typedef std::vector< std::string >    SeriesIdContainer;
+    const SeriesIdContainer & seriesUID = nameGenerator->GetSeriesUIDs();
+    SeriesIdContainer::const_iterator seriesItr = seriesUID.begin();
+    SeriesIdContainer::const_iterator seriesEnd = seriesUID.end();
+    while( seriesItr != seriesEnd )
+      {
+      std::cout << seriesItr->c_str() << std::endl;
+      ++seriesItr;
+      }
+
+    std::string seriesIdentifier;
+  //  if( argc > 3 ) // If no optional series identifier
+      {
+  //    seriesIdentifier = argv[3];
+      }
+    //else
+    //  {
+      seriesIdentifier = seriesUID.begin()->c_str();
+     // }
+// Software Guide : EndCodeSnippet
+    std::cout << std::endl << std::endl;
+    std::cout << "Now reading series: " << std::endl << std::endl;
+    std::cout << seriesIdentifier << std::endl;
+    std::cout << std::endl << std::endl;
+
+    typedef std::vector< std::string >   FileNamesContainer;
+    FileNamesContainer fileNames;
+    fileNames = nameGenerator->GetFileNames( seriesIdentifier );
+
+    reader->SetFileNames( fileNames );
+
+    try
+      {
+      reader->Update();
+      }
+    catch (itk::ExceptionObject &ex)
+      {
+      std::cout << ex << std::endl;
+      return ;
+      }
+
+	ImageType* image = reader->GetOutput();
+	//解决图像的大小
+ typedef itk::GradientMagnitudeImageFilter<
+	 ImageType, ImageType >  FilterType;
+  FilterType::Pointer gradientFilter = FilterType::New();
+  gradientFilter->SetInput( image );
+  gradientFilter->Update();
+  cout << "11111111111111111111111111111" << endl;
+
+	 typedef  itk::WatershedImageFilter<
+		 ImageType
+                                            > WatershedFilterType;
+  WatershedFilterType::Pointer watershedFilter = WatershedFilterType::New();
+  watershedFilter->SetInput( gradientFilter->GetOutput() );
+  watershedFilter->SetThreshold( 300 );
+  watershedFilter->SetLevel(     500 );
+   watershedFilter->Update();
+    cout << "11111111111111111111111111111111111111" << endl;
+  //  Instantiate the filter that will encode the label image
+  //  into a color image (random color attribution).
+  //
+  typedef itk::Functor::ScalarToRGBPixelFunctor<
+	  unsigned long
+                                                    > ColorMapFunctorType;
+  typedef WatershedFilterType::OutputImageType  LabeledImageType;
+  typedef itk::RGBPixel<unsigned short>      RGBPixelType;
+  typedef itk::Image< RGBPixelType,       Dimension >  RGBImageType;
+  typedef itk::UnaryFunctorImageFilter<
+                                LabeledImageType,
+                                RGBImageType,
+                                ColorMapFunctorType
+                                                > ColorMapFilterType;
+  ColorMapFilterType::Pointer colorMapFilter = ColorMapFilterType::New();
+ 
+  colorMapFilter->SetInput(  watershedFilter->GetOutput() );
+  colorMapFilter->Update();
+  cout << "222222222222222222222222222222222222222222222222222222222222222222" << endl;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	itksys::SystemTools::MakeDirectory( outputDirectoryName );
+  typedef signed short    OutputPixelType;
+  const unsigned int      OutputDimension = 2;
+  typedef itk::Image< RGBPixelType, OutputDimension >    Image2DType;
+	 typedef itk::ImageSeriesWriter<
+		 RGBImageType,Image2DType>  SeriesWriterType;
+
+  SeriesWriterType::Pointer seriesWriter = SeriesWriterType::New();
+  seriesWriter->SetInput(colorMapFilter->GetOutput());
+  seriesWriter->SetImageIO( dicomIO );
+
+  nameGenerator->SetOutputDirectory( outputDirectoryName );
+  seriesWriter->SetFileNames( nameGenerator->GetOutputFileNames() );
+
+  seriesWriter->SetMetaDataDictionaryArray(
+                        reader->GetMetaDataDictionaryArray() );
+
+  try
+    {
+    seriesWriter->Update();
+    }
+  catch( itk::ExceptionObject & excp )
+    {
+    std::cerr << "Exception thrown while writing the series " << std::endl;
+    std::cerr << excp << std::endl;
+    return ;
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    }
+  catch (itk::ExceptionObject &ex)
+    {
+    std::cout << ex << std::endl;
+    return ;
+    }
+  // Software Guide : BeginLatex
+  //
+  // Note that in addition to writing the volumetric image to a file we could
+  // have used it as the input for any 3D processing pipeline. Keep in mind that
+  // DICOM is simply a file format and a network protocol. Once the image data
+  // has been loaded into memory, it behaves as any other volumetric dataset that
+  // you could have loaded from any other file format.
+  //
+  // Software Guide : EndLatex
+
+
+
+}
+
+ void AnglePictureUtility::SegmentBloodVesselsFromVti(string fileName,string outputFileName,double sigma,double alpha1,double alpha2)
+ {
+	 vtkSmartPointer<vtkXMLImageDataReader> reader = vtkSmartPointer<vtkXMLImageDataReader>::New();
+	 reader->SetFileName(fileName.c_str());
+	 reader->Update();
+
+	 const unsigned int Dimension = 3;
+	 typedef signed short                    PixelType;
+     typedef itk::Image< PixelType, Dimension > ImageType;
+ 
+
+	 typedef itk::VTKImageToImageFilter< ImageType > FilterType;
+     FilterType::Pointer filter = FilterType::New();
+	 reader->Update();
+	 filter->SetInput( reader->GetOutput() );
+	 filter->Update();
+	 cout << "55555555555555555555555555555555555555" << endl;
+	 ImageType* image = filter->GetOutput();
+
+	 typedef itk::HessianRecursiveGaussianImageFilter< ImageType >
+    HessianFilterType;
+  HessianFilterType::Pointer hessianFilter = HessianFilterType::New();
+    if( sigma )
+    {
+    //hessianFilter->SetSigma( 1  );
+    }
+  hessianFilter->SetInput( image );
+  hessianFilter->Update();
+  cout << "1111111111111111111111111111111111111" << endl;
+
+
+  typedef itk::Hessian3DToVesselnessMeasureImageFilter< PixelType >
+    VesselnessMeasureFilterType;
+  VesselnessMeasureFilterType::Pointer vesselnessFilter = VesselnessMeasureFilterType::New();
+  vesselnessFilter->SetInput( hessianFilter->GetOutput() );
+  
+  if( alpha1 )
+    {
+    //vesselnessFilter->SetAlpha1( 1  );
+    }
+  if( alpha2 )
+    {
+    //vesselnessFilter->SetAlpha2(  1 );
+    }
+   
+  vesselnessFilter->Update();
+   cout << "222222222222222222222222222222222222222222" << endl;
+   /**
+    typedef itk::GDCMImageIO           ImageIOType;
+  ImageIOType::Pointer gdcmImageIO = ImageIOType::New();
+  typedef itk::ImageFileWriter< ImageType >  Writer1Type;
+  Writer1Type::Pointer writer1 = Writer1Type::New();
+  writer1->SetImageIO(gdcmImageIO);
+  writer1->UseInputMetaDataDictionaryOff();
+  writer1->SetInput(vesselnessFilter->GetOutput());
+  writer1->SetFileName(outputFileName);
+  writer1->Update();
+  */
+    typedef itk::ImageToVTKImageFilter< ImageType > FilterTypeToVtk;
+  FilterTypeToVtk::Pointer filterTovtk = FilterTypeToVtk::New();
+  filterTovtk->SetInput( vesselnessFilter->GetOutput() );
+  filterTovtk->Update();
+
+  vtkSmartPointer<vtkXMLImageDataWriter> writer = vtkSmartPointer<vtkXMLImageDataWriter>::New();
+  writer->SetFileName(outputFileName.c_str());
+  writer->SetInputData(filterTovtk->GetOutput());
+  writer->Update();
+
+ }

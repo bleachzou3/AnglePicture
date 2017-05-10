@@ -41,7 +41,25 @@ public:
 	*/
 	static void showHistogram(string directoryName);
 
+	/**
+	*SegmentBloodVesselsWithMultiScaleHessianBasedMeasure这个方法
+	*/
+	static void SegmentBloodVesselsWithMultiScaleHessianBasedMeasure(string inputDirectoryName,string outputDirectoryName);
 
+	/**
+	*SegmentBloodVessels这个方法
+	*/
+	static void SegmentBloodVessels(string inputDirectoryName,string outputDirectoryName,double sigma,double alpha1,double alpha2);
+
+	/**
+	*试一下water shed效果
+	*/
+	static void WatershedSegmentation(string inputDirectoryName,string outputDirectoryName);
+
+	/**
+	*从vti读取图像,进行图像切割
+	*/
+	static void SegmentBloodVesselsFromVti(string fileName,string outputFileName,double sigma,double alpha1,double alpha2);
 	static const string  OBLIQUE_NORMAL;
 	static const string  MAXIMUM_INSCRIBED_SPHERE_RADIUS;                          
 };
