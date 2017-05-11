@@ -22,8 +22,8 @@ include_directories(
   ${CMAKE_CURRENT_SOURCE_DIR}  
 )
 set(CMAKE_AUTOMOC ON)
-set(Srcs AnglePicture.cpp ONB.cpp InteractorStyleRollBall.cpp AnglePictureUtility.cpp)
-set(Hdrs ONB.h Vector3.h InteractorStyleRollBall.h AnglePictureUtility.h)
+set(Srcs AnglePicture.cpp ONB.cpp InteractorStyleRollBall.cpp AnglePictureUtility.cpp DisplayVoxelUtility.cpp AnglePictureSegmentation.cpp)
+set(Hdrs ONB.h Vector3.h InteractorStyleRollBall.h AnglePictureUtility.h DisplayVoxelUtility.h)
 set(LOGs log4cpp.conf )
 set(LinkedLog log4cpp)
 

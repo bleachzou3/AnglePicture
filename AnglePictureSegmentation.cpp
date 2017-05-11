@@ -34,6 +34,7 @@
 #include <vtkLine.h>
 #include <vtkTriangleFilter.h>
 #include <vtkExtractEdges.h>
+#include <DisplayVoxelUtility.h>
 int main(int argc, char* argv[])
 {
 
@@ -54,6 +55,8 @@ int main(int argc, char* argv[])
 	//AnglePictureUtility::showHistogram("E:\\patientData\\WU_AMAO");
 	//AnglePictureUtility::SegmentBloodVessels("E:\\patientData\\WU_AMAO","E:\\patientData\\WU_AMAO_SegmentBloodVessels",0,0,0);
 	//AnglePictureUtility::WatershedSegmentation("E:\\patientData\\WU_AMAO","E:\\patientData\\WU_AMAO_WatershedSegmentation");
-	AnglePictureUtility::SegmentBloodVesselsFromVti("E:\\patientData\\WU_AMAO_image_volume_voi.vti","E:\\patientData\\WU_AMAO_image_volume.vti",0,0,0);
+	//AnglePictureUtility::SegmentBloodVesselsFromVti("E:\\patientData\\WU_AMAO_image_volume_voi.vti","E:\\patientData\\WU_AMAO_image_volume.vti",0,0,0);
+	DisplayVoxelUtility::displaySegmentBloodVesselsFromVti("E:\\patientData\\WU_AMAO_image_volume.vti");
+
   return EXIT_SUCCESS;
 }
