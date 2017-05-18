@@ -66,6 +66,15 @@
 #include <itkImageToVTKImageFilter.h>
 #include <vtkXMLImageDataWriter.h>
 
+
+#include <itkCurvatureAnisotropicDiffusionImageFilter.h>
+#include <itkGradientMagnitudeRecursiveGaussianImageFilter.h>
+#include <itkSigmoidImageFilter.h>
+#include <itkFastMarchingImageFilter.h>
+#include <itkRescaleIntensityImageFilter.h>
+#include <itkBinaryThresholdImageFilter.h>
+#include <itkCurvesLevelSetImageFilter.h>
+
 using namespace itk;
 AnglePictureUtility::AnglePictureUtility()
 {
@@ -1441,5 +1450,466 @@ void   AnglePictureUtility::WatershedSegmentation(string inputDirectoryName,stri
   writer->SetFileName(outputFileName.c_str());
   writer->SetInputData(filterTovtk->GetOutput());
   writer->Update();
+
+ }
+
+ void AnglePictureUtility::CurvesLevelSetImage(string inputFileName,int x,int y,int z)
+ {
+	   //  Software Guide : BeginLatex
+  //
+  //  We now define the image type using a particular pixel type and
+  //  dimension. In this case the \code{float} type is used for the pixels
+  //  due to the requirements of the smoothing filter.
+  //
+  //  Software Guide : EndLatex
+  // Software Guide : BeginCodeSnippet
+
+  //第一个疑问，InternalPixelType，它代表哪个方向来的数据
+  typedef   float           InternalPixelType;
+  const     unsigned int    Dimension = 3;
+  typedef itk::Image< InternalPixelType, Dimension >  InternalImageType;
+  // Software Guide : EndCodeSnippet
+  //  The following lines instantiate the thresholding filter that will
+  //  process the final level set at the output of the
+  //  CurvesLevelSetImageFilter.
+  //
+  typedef unsigned char                            OutputPixelType;
+  typedef itk::Image< OutputPixelType, Dimension > OutputImageType;
+
+
+  //是给谁用的
+  typedef itk::BinaryThresholdImageFilter<
+                        InternalImageType,
+                        OutputImageType    >       ThresholdingFilterType;
+
+
+  //thresholder是在最后的时候用，关于它的参数设置，要怎么弄，水平集跑完之后弄的，等于对应的是最后出来的结果
+  ThresholdingFilterType::Pointer thresholder = ThresholdingFilterType::New();
+  thresholder->SetLowerThreshold( -1000.0 );
+  thresholder->SetUpperThreshold(     0.0 );
+  thresholder->SetOutsideValue(  0  );
+  thresholder->SetInsideValue(  255 );
+  // We instantiate reader and writer types in the following lines.
+  //
+
+  /**
+  typedef  itk::ImageFileReader< InternalImageType > ReaderType;
+  typedef  itk::ImageFileWriter<  OutputImageType  > WriterType;
+  ReaderType::Pointer reader = ReaderType::New();
+  WriterType::Pointer writer = WriterType::New();
+  reader->SetFileName( argv[1] );
+  writer->SetFileName( argv[2] );
+  */
+
+
+
+  //  The RescaleIntensityImageFilter type is declared below. This filter will
+  //  renormalize image before sending them to writers.
+  //
+  typedef itk::RescaleIntensityImageFilter<
+                               InternalImageType,
+                               OutputImageType >   CastFilterType;
+  //  The \doxygen{CurvatureAnisotropicDiffusionImageFilter} type is
+  //  instantiated using the internal image type.
+  //
+  typedef   itk::CurvatureAnisotropicDiffusionImageFilter<
+                               InternalImageType,
+                               InternalImageType >  SmoothingFilterType;
+  SmoothingFilterType::Pointer smoothing = SmoothingFilterType::New();
+  //  The types of the
+  //  GradientMagnitudeRecursiveGaussianImageFilter and
+  //  SigmoidImageFilter are instantiated using the internal image
+  //  type.
+  //
+  typedef   itk::GradientMagnitudeRecursiveGaussianImageFilter<
+                               InternalImageType,
+                               InternalImageType >  GradientFilterType;
+  typedef   itk::SigmoidImageFilter<
+                               InternalImageType,
+                               InternalImageType >  SigmoidFilterType;
+  GradientFilterType::Pointer  gradientMagnitude = GradientFilterType::New();
+  SigmoidFilterType::Pointer sigmoid = SigmoidFilterType::New();
+  //  The minimum and maximum values of the SigmoidImageFilter output
+  //  are defined with the methods \code{SetOutputMinimum()} and
+  //  \code{SetOutputMaximum()}. In our case, we want these two values to be
+  //  $0.0$ and $1.0$ respectively in order to get a nice speed image to feed
+  //  the \code{FastMarchingImageFilter}. Additional details on the user of the
+  //  \doxygen{SigmoidImageFilter} are presented in
+  //  section~\ref{sec:IntensityNonLinearMapping}.
+  sigmoid->SetOutputMinimum(  0.0  );
+  sigmoid->SetOutputMaximum(  1.0  );
+  //  We declare now the type of the FastMarchingImageFilter that
+  //  will be used to generate the initial level set in the form of a distance
+  //  map.
+  //
+  typedef  itk::FastMarchingImageFilter<
+                              InternalImageType,
+                              InternalImageType >    FastMarchingFilterType;
+  //  Next we construct one filter of this class using the \code{New()}
+  //  method.
+  //
+  FastMarchingFilterType::Pointer  fastMarching = FastMarchingFilterType::New();
+  //  Software Guide : BeginLatex
+  //
+  //  In the following lines we instantiate the type of the
+  //  CurvesLevelSetImageFilter and create an object of this
+  //  type using the \code{New()} method.
+  //
+  //  Software Guide : EndLatex
+  // Software Guide : BeginCodeSnippet
+  typedef  itk::CurvesLevelSetImageFilter< InternalImageType,
+                InternalImageType >    CurvesFilterType;
+  CurvesFilterType::Pointer geodesicActiveContour =
+                                     CurvesFilterType::New();
+  // Software Guide : EndCodeSnippet
+  //  Software Guide : BeginLatex
+  //
+  //  For the CurvesLevelSetImageFilter, scaling parameters
+  //  are used to trade off between the propagation (inflation), the
+  //  curvature (smoothing) and the advection terms. These parameters are set
+  //  using methods \code{SetPropagationScaling()},
+  //  \code{SetCurvatureScaling()} and \code{SetAdvectionScaling()}. In this
+  //  example, we will set the curvature and advection scales to one and let
+  //  the propagation scale be a command-line argument.
+  //
+  //  \index{itk::Geodesic\-Active\-Contour\-LevelSet\-Image\-Filter!SetPropagationScaling()}
+  //  \index{itk::Segmentation\-Level\-Set\-Image\-Filter!SetPropagationScaling()}
+  //  \index{itk::Geodesic\-Active\-Contour\-LevelSet\-Image\-Filter!SetCurvatureScaling()}
+  //  \index{itk::Segmentation\-Level\-Set\-Image\-Filter!SetCurvatureScaling()}
+  //  \index{itk::Geodesic\-Active\-Contour\-LevelSet\-Image\-Filter!SetAdvectionScaling()}
+  //  \index{itk::Segmentation\-Level\-Set\-Image\-Filter!SetAdvectionScaling()}
+  //
+  //  Software Guide : EndLatex
+  //原来要设置的参数
+  const double propagationScaling = 1.0;//之前没有设置，我到现在都看不懂
+  //  Software Guide : BeginCodeSnippet
+  geodesicActiveContour->SetPropagationScaling( propagationScaling );
+  geodesicActiveContour->SetCurvatureScaling( 1.0 );
+  geodesicActiveContour->SetAdvectionScaling( 1.0 );
+  //  Software Guide : EndCodeSnippet
+  //  Once activiated the level set evolution will stop if the convergence
+  //  criteria or if the maximum number of iterations is reached.  The
+  //  convergence criteria is defined in terms of the root mean squared (RMS)
+  //  change in the level set function. The evolution is said to have
+  //  converged if the RMS change is below a user specified threshold.  In a
+  //  real application is desirable to couple the evolution of the zero set
+  //  to a visualization module allowing the user to follow the evolution of
+  //  the zero set. With this feedback, the user may decide when to stop the
+  //  algorithm before the zero set leaks through the regions of low gradient
+  //  in the contour of the anatomical structure to be segmented.
+  geodesicActiveContour->SetMaximumRMSError( 0.02 );
+  geodesicActiveContour->SetNumberOfIterations( 800 );
+  //  Software Guide : BeginLatex
+  //
+  //  The filters are now connected in a pipeline indicated in
+  //  Figure~\ref{fig:CurvessCollaborationDiagram} using the
+  //  following lines:
+  //
+  //  Software Guide : EndLatex
+  // Software Guide : BeginCodeSnippet
+
+
+
+  //这里就是关键性的代码
+
+  vtkSmartPointer<vtkXMLImageDataReader> reader = vtkSmartPointer<vtkXMLImageDataReader>::New();
+  reader->SetFileName(inputFileName.c_str());
+  reader->Update();
+  
+
+
+	 typedef itk::VTKImageToImageFilter< InternalImageType > FilterType;
+     FilterType::Pointer filter = FilterType::New();
+	 reader->Update();
+	 filter->SetInput( reader->GetOutput() );
+	 filter->Update();
+	 InternalImageType* image = filter->GetOutput();
+
+
+
+  //writer->SetInput( thresholder->GetOutput() );
+
+
+
+
+
+
+
+
+  // Software Guide : EndCodeSnippet
+  //  The CurvatureAnisotropicDiffusionImageFilter requires a couple of
+  //  parameter to be defined. The following are typical values for $2D$
+  //  images. However they may have to be adjusted depending on the amount of
+  //  noise present in the input image. This filter has been discussed in
+  //  section~\ref{sec:GradientAnisotropicDiffusionImageFilter}.
+
+  //每一个参数给出的意义
+ /*Conductance Parameter
+ * The conductance parameter controls the sensitivity of the conductance term
+ * in the basic anisotropic diffusion equation.  It affects the conductance term
+ * in different ways depending on the particular variation on the basic
+ * equation. As a general rule, the lower the value, the more strongly the
+ * diffusion equation preserves image features (such as high gradients or
+ * curvature).  A high value for conductance will cause the filter to diffuse
+ * image features more readily.  Typical values range from 0.5 to 2.0 for data
+ * like the Visible Human color data, but the correct value for your
+ * application is wholly dependent on the results you want from a specific data
+ * set and the number or iterations you perform.
+ */
+  smoothing->SetTimeStep( 0.0625 );
+  smoothing->SetNumberOfIterations(  5 );
+  smoothing->SetConductanceParameter( 2.0 );
+  //  The GradientMagnitudeRecursiveGaussianImageFilter performs the
+  //  equivalent of a convolution with a Gaussian kernel, followed by a
+  //  derivative operator. The sigma of this Gaussian can be used to control
+  //  the range of influence of the image edges. This filter has been discussed
+  //  in Section~\ref{sec:GradientMagnitudeRecursiveGaussianImageFilter}.
+
+
+  //上面的注释里有说明
+  const double sigma = 0.4; //原来是参数
+  gradientMagnitude->SetSigma(  sigma  );
+  //  The SigmoidImageFilter requires two parameters that define the linear
+  //  transformation to be applied to the sigmoid argument. This parameters
+  //  have been discussed in Sections~\ref{sec:IntensityNonLinearMapping} and
+  //  \ref{sec:FastMarchingImageFilter}.
+
+  //alpha,beta的参数选择怎么做
+  const double alpha =  5;
+  const double beta  =  10;
+  sigmoid->SetAlpha( alpha );
+  sigmoid->SetBeta(  beta  );
+  //  The FastMarchingImageFilter requires the user to provide a seed
+  //  point from which the level set will be generated. The user can actually
+  //  pass not only one seed point but a set of them. Note the the
+  //  FastMarchingImageFilter is used here only as a helper in the
+  //  determination of an initial level set. We could have used the
+  //  \doxygen{DanielssonDistanceMapImageFilter} in the same way.
+  //
+  //  The seeds are passed stored in a container. The type of this
+  //  container is defined as \code{NodeContainer} among the
+  //  FastMarchingImageFilter traits.
+  //
+  typedef FastMarchingFilterType::NodeContainer  NodeContainer;
+  typedef FastMarchingFilterType::NodeType       NodeType;
+  NodeContainer::Pointer seeds = NodeContainer::New();
+  InternalImageType::IndexType  seedPosition;
+  seedPosition[0] = x;
+  seedPosition[1] = y;
+  seedPosition[2] = z;
+  //  Nodes are created as stack variables and initialized with a value and an
+  //  \doxygen{Index} position. Note that here we assign the value of minus the
+  //  user-provided distance to the unique node of the seeds passed to the
+  //  FastMarchingImageFilter. In this way, the value will increment
+  //  as the front is propagated, until it reaches the zero value corresponding
+  //  to the contour. After this, the front will continue propagating until it
+  //  fills up the entire image. The initial distance is taken here from the
+  //  command line arguments. The rule of thumb for the user is to select this
+  //  value as the distance from the seed points at which she want the initial
+  //  contour to be.
+
+  //这个值如何选择
+  const double initialDistance = 0.05;
+  NodeType node;
+  const double seedValue = - initialDistance;
+  node.SetValue( seedValue );
+  node.SetIndex( seedPosition );
+  //  The list of nodes is initialized and then every node is inserted using
+  //  the \code{InsertElement()}.
+  seeds->Initialize();
+  seeds->InsertElement( 0, node );
+  //  The set of seed nodes is passed now to the
+  //  FastMarchingImageFilter with the method
+  //  \code{SetTrialPoints()}.
+  //
+  fastMarching->SetTrialPoints(  seeds  );
+  //  Since the FastMarchingImageFilter is used here just as a
+  //  Distance Map generator. It does not require a speed image as input.
+  //  Instead the constant value $1.0$ is passed using the
+  //  \code{SetSpeedConstant()} method.
+  //
+  fastMarching->SetSpeedConstant( 1.0 );
+  //  Here we configure all the writers required to see the intermediate
+  //  outputs of the pipeline. This is added here only for
+  //  pedagogical/debugging purposes. These intermediate output are normaly not
+  //  required. Only the output of the final thresholding filter should be
+  //  relevant.  Observing intermediate output is helpful in the process of
+  //  fine tuning the parameters of filters in the pipeline.
+  //
+
+  smoothing->SetInput( image );
+  gradientMagnitude->SetInput( smoothing->GetOutput() );
+  sigmoid->SetInput( gradientMagnitude->GetOutput() );
+  geodesicActiveContour->SetInput(  fastMarching->GetOutput() );
+  geodesicActiveContour->SetFeatureImage( sigmoid->GetOutput() );
+  thresholder->SetInput( geodesicActiveContour->GetOutput() );
+  thresholder->Update();
+
+  /**
+  CastFilterType::Pointer caster1 = CastFilterType::New();
+  CastFilterType::Pointer caster2 = CastFilterType::New();
+  CastFilterType::Pointer caster3 = CastFilterType::New();
+  CastFilterType::Pointer caster4 = CastFilterType::New();
+  WriterType::Pointer writer1 = WriterType::New();
+  WriterType::Pointer writer2 = WriterType::New();
+  WriterType::Pointer writer3 = WriterType::New();
+  WriterType::Pointer writer4 = WriterType::New();
+  caster1->SetInput( smoothing->GetOutput() );
+  writer1->SetInput( caster1->GetOutput() );
+  writer1->SetFileName("CurvesImageFilterOutput1.png");
+  caster1->SetOutputMinimum(   0 );
+  caster1->SetOutputMaximum( 255 );
+  writer1->Update();
+  caster2->SetInput( gradientMagnitude->GetOutput() );
+  writer2->SetInput( caster2->GetOutput() );
+  writer2->SetFileName("CurvesImageFilterOutput2.png");
+  caster2->SetOutputMinimum(   0 );
+  caster2->SetOutputMaximum( 255 );
+  writer2->Update();
+  caster3->SetInput( sigmoid->GetOutput() );
+  writer3->SetInput( caster3->GetOutput() );
+  writer3->SetFileName("CurvesImageFilterOutput3.png");
+  caster3->SetOutputMinimum(   0 );
+  caster3->SetOutputMaximum( 255 );
+  writer3->Update();
+  caster4->SetInput( fastMarching->GetOutput() );
+  writer4->SetInput( caster4->GetOutput() );
+  writer4->SetFileName("CurvesImageFilterOutput4.png");
+  caster4->SetOutputMinimum(   0 );
+  caster4->SetOutputMaximum( 255 );
+  //  The FastMarchingImageFilter requires the user to specify the
+  //  size of the image to be produced as output. This is done using the
+  //  \code{SetOutputSize()}. Note that the size is obtained here from the
+  //  output image of the smoothing filter. The size of this image is valid
+  //  only after the \code{Update()} methods of this filter has been called
+  //  directly or indirectly.
+  //
+  fastMarching->SetOutputSize(
+           reader->GetOutput()->GetBufferedRegion().GetSize() );
+  //  Software Guide : BeginLatex
+  //
+  //  The invocation of the \code{Update()} method on the writer triggers the
+  //  execution of the pipeline.  As usual, the call is placed in a
+  //  \code{try/catch} block should any errors occur or exceptions be thrown.
+  //
+  //  Software Guide : EndLatex
+  // Software Guide : BeginCodeSnippet
+  try
+    {
+    writer->Update();
+    }
+  catch( itk::ExceptionObject & excep )
+    {
+    std::cerr << "Exception caught !" << std::endl;
+    std::cerr << excep << std::endl;
+    return EXIT_FAILURE;
+    }
+  // Software Guide : EndCodeSnippet
+  // Print out some useful information
+  std::cout << std::endl;
+  std::cout << "Max. no. iterations: " << geodesicActiveContour->GetNumberOfIterations() << std::endl;
+  std::cout << "Max. RMS error: " << geodesicActiveContour->GetMaximumRMSError() << std::endl;
+  std::cout << std::endl;
+  std::cout << "No. elpased iterations: " << geodesicActiveContour->GetElapsedIterations() << std::endl;
+  std::cout << "RMS change: " << geodesicActiveContour->GetRMSChange() << std::endl;
+  writer4->Update();
+  // The following writer type is used to save the output of the time-crossing
+  // map in a file with apropiate pixel representation. The advantage of saving
+  // this image in native format is that it can be used with a viewer to help
+  // determine an appropriate threshold to be used on the output of the
+  // fastmarching filter.
+  //
+  typedef itk::ImageFileWriter< InternalImageType > InternalWriterType;
+  InternalWriterType::Pointer mapWriter = InternalWriterType::New();
+  mapWriter->SetInput( fastMarching->GetOutput() );
+  mapWriter->SetFileName("CurvesImageFilterOutput4.mha");
+  mapWriter->Update();
+  InternalWriterType::Pointer speedWriter = InternalWriterType::New();
+  speedWriter->SetInput( sigmoid->GetOutput() );
+  speedWriter->SetFileName("CurvesImageFilterOutput3.mha");
+  speedWriter->Update();
+  InternalWriterType::Pointer gradientWriter = InternalWriterType::New();
+  gradientWriter->SetInput( gradientMagnitude->GetOutput() );
+  gradientWriter->SetFileName("CurvesImageFilterOutput2.mha");
+  gradientWriter->Update();
+  //  Software Guide : BeginLatex
+  //
+  //  Let's now run this example using as input the image
+  //  \code{BrainProtonDensitySlice.png} provided in the directory
+  //  \code{Examples/Data}. We can easily segment the major anatomical
+  //  structures by providing seeds in the appropriate locations.
+  //  Table~\ref{tab:CurvesImageFilterOutput2} presents the
+  //  parameters used for some structures.
+  //
+  //  \begin{table}
+  //  \begin{center}
+  //  \begin{tabular}{|l|c|c|c|c|c|c|c|c|}
+  //  \hline
+  //  Structure    & Seed Index &  Distance   &   $\sigma$  &
+  //  $\alpha$     &  $\beta$   & Propag. & Output Image \\  \hline
+  //  Left Ventricle  & $(81,114)$ & 5.0 & 1.0 & -0.5 & 3.0  &  2.0 & First   \\  \hline
+  //  Right Ventricle & $(99,114)$ & 5.0 & 1.0 & -0.5 & 3.0  &  2.0 & Second  \\  \hline
+  //  White matter    & $(56, 92)$ & 5.0 & 1.0 & -0.3 & 2.0  & 10.0 & Third   \\  \hline
+  //  Gray matter     & $(40, 90)$ & 5.0 & 0.5 & -0.3 & 2.0  & 10.0 & Fourth  \\  \hline
+  //  \end{tabular}
+  //  \end{center}
+  //  \itkcaption[Curves segmentation example parameters]{Parameters used
+  //  for segmenting some brain structures shown in
+  //  Figure~\ref{fig:CurvesImageFilterOutput2} using the filter
+  //  CurvesLevelSetImageFilter.
+  //  \label{tab:CurvesImageFilterOutput2}}
+  //  \end{table}
+  //
+  //  Figure~\ref{fig:CurvesImageFilterOutput} presents the
+  //  intermediate outputs of the pipeline illustrated in
+  //  Figure~\ref{fig:CurvessCollaborationDiagram}. They are
+  //  from left to right: the output of the anisotropic diffusion filter, the
+  //  gradient magnitude of the smoothed image and the sigmoid of the gradient
+  //  magnitude which is finally used as the edge potential for the
+  //  CurvesLevelSetImageFilter.
+  //
+  // \begin{figure} \center
+  // \includegraphics[height=0.40\textheight]{BrainProtonDensitySlice}
+  // \includegraphics[height=0.40\textheight]{CurvesImageFilterOutput1}
+  // \includegraphics[height=0.40\textheight]{CurvesImageFilterOutput2}
+  // \includegraphics[height=0.40\textheight]{CurvesImageFilterOutput3}
+  // \itkcaption[CurvesLevelSetImageFilter intermediate
+  // output]{Images generated by the segmentation process based on the
+  // CurvesLevelSetImageFilter. From left to right and top to
+  // bottom: input image to be segmented, image smoothed with an
+  // edge-preserving smoothing filter, gradient magnitude of the smoothed
+  // image, sigmoid of the gradient magnitude. This last image, the sigmoid, is
+  // used to compute the speed term for the front propagation.}
+  // \label{fig:CurvesImageFilterOutput} \end{figure}
+  //
+  //  Segmentations of the main brain structures are presented in
+  //  Figure~\ref{fig:CurvesImageFilterOutput2}. The results
+  //  are quite similar to those obtained with the
+  //  ShapeDetectionLevelSetImageFilter in
+  //  Section~\ref{sec:ShapeDetectionLevelSetFilter}.
+  //
+  //  Note that a relatively larger propagation scaling value was required to
+  //  segment the white matter. This is due to two factors: the lower
+  //  contrast at the border of the white matter and the complex shape of the
+  //  structure. Unfortunately the optimal value of these scaling parameters
+  //  can only be determined by experimentation. In a real application we
+  //  could imagine an interactive mechanism by which a user supervises the
+  //  contour evolution and adjusts these parameters accordingly.
+  //
+  // \begin{figure} \center
+  // \includegraphics[width=0.24\textwidth]{CurvesImageFilterOutput5}
+  // \includegraphics[width=0.24\textwidth]{CurvesImageFilterOutput6}
+  // \includegraphics[width=0.24\textwidth]{CurvesImageFilterOutput7}
+  // \includegraphics[width=0.24\textwidth]{CurvesImageFilterOutput8}
+  // \itkcaption[CurvesImageFilter segmentations]{Images generated by the
+  // segmentation process based on the CurvesImageFilter. From left to
+  // right: segmentation of the left ventricle, segmentation of the right
+  // ventricle, segmentation of the white matter, attempt of segmentation of
+  // the gray matter.}
+  // \label{fig:CurvesImageFilterOutput2}
+  // \end{figure}
+  //
+  //  Software Guide : EndLatex
+  */
 
  }

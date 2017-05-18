@@ -60,6 +60,12 @@ public:
 	*从vti读取图像,进行图像切割
 	*/
 	static void SegmentBloodVesselsFromVti(string fileName,string outputFileName,double sigma,double alpha1,double alpha2);
+
+
+	/**
+	*从文件里面读取图像
+	*/
+	static void CurvesLevelSetImage(string inputFileName,int x,int y,int z);
 	static const string  OBLIQUE_NORMAL;
 	static const string  MAXIMUM_INSCRIBED_SPHERE_RADIUS;                          
 };
