@@ -74,6 +74,10 @@
 #include <itkRescaleIntensityImageFilter.h>
 #include <itkBinaryThresholdImageFilter.h>
 #include <itkCurvesLevelSetImageFilter.h>
+#include <log4cpp/Category.hh>
+#include <log4cpp/PropertyConfigurator.hh>
+extern log4cpp::Category& rootLog;
+extern log4cpp::Category& subLog ;
 
 using namespace itk;
 AnglePictureUtility::AnglePictureUtility()
@@ -1455,6 +1459,9 @@ void   AnglePictureUtility::WatershedSegmentation(string inputDirectoryName,stri
 
  void AnglePictureUtility::CurvesLevelSetImage(string inputFileName,int x,int y,int z)
  {
+
+	subLog.info("AnglePictureUtility::CurvesLevelSetImage()开始执行");
+	rootLog.info("AnglePictureUtility::CurvesLevelSetImage()开始执行");
 	   //  Software Guide : BeginLatex
   //
   //  We now define the image type using a particular pixel type and
@@ -1518,7 +1525,7 @@ void   AnglePictureUtility::WatershedSegmentation(string inputDirectoryName,stri
   SmoothingFilterType::Pointer smoothing = SmoothingFilterType::New();
   //  The types of the
   //  GradientMagnitudeRecursiveGaussianImageFilter and
-  //  SigmoidImageFilter are instantiated using the internal image
+  //  SigmoidImageFilter are instantiated using the internal image 
   //  type.
   //
   typedef   itk::GradientMagnitudeRecursiveGaussianImageFilter<
@@ -1611,19 +1618,38 @@ void   AnglePictureUtility::WatershedSegmentation(string inputDirectoryName,stri
 
 
   //这里就是关键性的代码
-
+  
+ // itk::SmartPointer<InternalImageType> lineimage;
+  
+ // {
   vtkSmartPointer<vtkXMLImageDataReader> reader = vtkSmartPointer<vtkXMLImageDataReader>::New();
   reader->SetFileName(inputFileName.c_str());
   reader->Update();
-  
+  	subLog.info("AnglePictureUtility::CurvesLevelSetImage()从vti中读取图像完成");
+	rootLog.info("AnglePictureUtility::CurvesLevelSetImage()从vti中读取图像完成");
+	
 
+	//这里我大概还记的是要做数据类型的转换
+	vtkImageData* original = reader->GetOutput();
+	vtkSmartPointer<vtkImageCast> castToFloat = vtkSmartPointer<vtkImageCast>::New();
+	castToFloat->SetInputData(original);
+	castToFloat->SetOutputScalarTypeToFloat();
+	castToFloat->Update();
+	vtkImageData* imageData = castToFloat->GetOutput(); 
+	  	subLog.info("AnglePictureUtility::CurvesLevelSetImage()把图像数据类型从signed short转化到float");
+	rootLog.info("AnglePictureUtility::CurvesLevelSetImage()把图像数据类型从signed short转化到float");
 
 	 typedef itk::VTKImageToImageFilter< InternalImageType > FilterType;
      FilterType::Pointer filter = FilterType::New();
-	 reader->Update();
-	 filter->SetInput( reader->GetOutput() );
+	 filter->SetInput( imageData );
 	 filter->Update();
-	 InternalImageType* image = filter->GetOutput();
+	// InternalImageType* image = filter->GetOutput();
+//	 cout << filter->GetOutput()->GetReferenceCount() << endl;
+	 InternalImageType*          lineimage = filter->GetOutput();
+//	 cout << lineimage->GetReferenceCount() << endl;
+	subLog.info("AnglePictureUtility::CurvesLevelSetImage()转换成itk图像");
+	rootLog.info("AnglePictureUtility::CurvesLevelSetImage()转换成itk图像");
+ // }
 
 
 
@@ -1656,7 +1682,7 @@ void   AnglePictureUtility::WatershedSegmentation(string inputDirectoryName,stri
  * application is wholly dependent on the results you want from a specific data
  * set and the number or iterations you perform.
  */
-  smoothing->SetTimeStep( 0.0625 );
+  smoothing->SetTimeStep( 0.02 );
   smoothing->SetNumberOfIterations(  5 );
   smoothing->SetConductanceParameter( 2.0 );
   //  The GradientMagnitudeRecursiveGaussianImageFilter performs the
@@ -1708,7 +1734,7 @@ void   AnglePictureUtility::WatershedSegmentation(string inputDirectoryName,stri
   //  value as the distance from the seed points at which she want the initial
   //  contour to be.
 
-  //这个值如何选择
+  //这个值如何选择,spacing,是多少，我可以参照不同数量级，
   const double initialDistance = 0.05;
   NodeType node;
   const double seedValue = - initialDistance;
@@ -1737,13 +1763,32 @@ void   AnglePictureUtility::WatershedSegmentation(string inputDirectoryName,stri
   //  fine tuning the parameters of filters in the pipeline.
   //
 
-  smoothing->SetInput( image );
+  smoothing->SetInput( lineimage );
+  smoothing->Update();
+  subLog.info("AnglePictureUtility::CurvesLevelSetImage()完成图像平滑的操作");
+  rootLog.info("AnglePictureUtility::CurvesLevelSetImage()完成图像平滑的操作");
+
+
   gradientMagnitude->SetInput( smoothing->GetOutput() );
+  gradientMagnitude->Update();
+  subLog.info("AnglePictureUtility::CurvesLevelSetImage()完成图像梯度的操作");
+  rootLog.info("AnglePictureUtility::CurvesLevelSetImage()完成图像梯度的操作");
+
+
   sigmoid->SetInput( gradientMagnitude->GetOutput() );
+  sigmoid->Update();
+  subLog.info("AnglePictureUtility::CurvesLevelSetImage()完成图像sigmoid的操作");
+  rootLog.info("AnglePictureUtility::CurvesLevelSetImage()完成图像digmoid的操作");
   geodesicActiveContour->SetInput(  fastMarching->GetOutput() );
   geodesicActiveContour->SetFeatureImage( sigmoid->GetOutput() );
+  geodesicActiveContour->Update();
+  subLog.info("AnglePictureUtility::CurvesLevelSetImage()完成levelset的操作");
+  rootLog.info("AnglePictureUtility::CurvesLevelSetImage()完成levelset的操作");
   thresholder->SetInput( geodesicActiveContour->GetOutput() );
+  
   thresholder->Update();
+    subLog.info("AnglePictureUtility::CurvesLevelSetImage()完成thresholder的操作");
+  rootLog.info("AnglePictureUtility::CurvesLevelSetImage()完成thresholder的操作");
 
   /**
   CastFilterType::Pointer caster1 = CastFilterType::New();

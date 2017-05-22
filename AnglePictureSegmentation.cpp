@@ -56,7 +56,8 @@ int main(int argc, char* argv[])
 	//AnglePictureUtility::SegmentBloodVessels("E:\\patientData\\WU_AMAO","E:\\patientData\\WU_AMAO_SegmentBloodVessels",0,0,0);
 	//AnglePictureUtility::WatershedSegmentation("E:\\patientData\\WU_AMAO","E:\\patientData\\WU_AMAO_WatershedSegmentation");
 	//AnglePictureUtility::SegmentBloodVesselsFromVti("E:\\patientData\\WU_AMAO_image_volume_voi.vti","E:\\patientData\\WU_AMAO_image_volume.vti",0,0,0);
-	DisplayVoxelUtility::displaySegmentBloodVesselsFromVti("E:\\patientData\\WU_AMAO_image_volume.vti");
+	//DisplayVoxelUtility::displaySegmentBloodVesselsFromVti("E:\\patientData\\WU_AMAO_image_volume.vti");
+	AnglePictureUtility::CurvesLevelSetImage("E:\\patientData\\WU_AMAO_image_volume_voi.vti",190,33,69);
 
   return EXIT_SUCCESS;
 }
