@@ -1778,10 +1778,18 @@ void   AnglePictureUtility::WatershedSegmentation(string inputDirectoryName,stri
   sigmoid->SetInput( gradientMagnitude->GetOutput() );
   sigmoid->Update();
   subLog.info("AnglePictureUtility::CurvesLevelSetImage()完成图像sigmoid的操作");
-  rootLog.info("AnglePictureUtility::CurvesLevelSetImage()完成图像digmoid的操作");
+  rootLog.info("AnglePictureUtility::CurvesLevelSetImage()完成图像sigmoid的操作");
+
+  fastMarching->Update();
+  subLog.info("AnglePictureUtility::CurvesLevelSetImage()  完成图像fastMarching操作");
+  rootLog.info("AnglePictureUtility::CurvesLevelSetImage() 完成图像fastMarching的操作");
+
+
+
   geodesicActiveContour->SetInput(  fastMarching->GetOutput() );
   geodesicActiveContour->SetFeatureImage( sigmoid->GetOutput() );
   geodesicActiveContour->Update();
+ 
   subLog.info("AnglePictureUtility::CurvesLevelSetImage()完成levelset的操作");
   rootLog.info("AnglePictureUtility::CurvesLevelSetImage()完成levelset的操作");
   thresholder->SetInput( geodesicActiveContour->GetOutput() );
