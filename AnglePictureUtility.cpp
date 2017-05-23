@@ -1789,7 +1789,7 @@ void   AnglePictureUtility::WatershedSegmentation(string inputDirectoryName,stri
   geodesicActiveContour->SetInput(  fastMarching->GetOutput() );
   geodesicActiveContour->SetFeatureImage( sigmoid->GetOutput() );
   geodesicActiveContour->Update();
- 
+  //geodesicActiveContour->GetOutput();curveLevelSet,有时候成功，有时候失败，为什么失败，不知道
   subLog.info("AnglePictureUtility::CurvesLevelSetImage()完成levelset的操作");
   rootLog.info("AnglePictureUtility::CurvesLevelSetImage()完成levelset的操作");
   thresholder->SetInput( geodesicActiveContour->GetOutput() );
