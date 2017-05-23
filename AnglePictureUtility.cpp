@@ -1785,15 +1785,35 @@ void   AnglePictureUtility::WatershedSegmentation(string inputDirectoryName,stri
   rootLog.info("AnglePictureUtility::CurvesLevelSetImage() 完成图像fastMarching的操作");
 
 
+   sigmoid->GetOutput()->SetSpacing(fastMarching->GetOutput()->GetSpacing());
+   //sigmoid->GetOutput()->SetRequestedRegion(sigmoid->GetOutput()->GetLargestPossibleRegion());
+   //fastMarching->GetOutput()->SetRequestedRegion(fastMarching->GetOutput()->GetLargestPossibleRegion());
+   //sigmoid->GetOutput()->SetRequestedRegion(fastMarching->GetOutput()->GetRequestedRegion());
+  //fastMarching->GetOutput()->SetSpacing(sigmoid->GetOutput()->GetSpacing());
+  //fastMarching->GetOutput()->SetRequestedRegion(sigmoid->GetOutput()->GetRequestedRegion());
+  // fastMarching->UpdateLargestPossibleRegion();
+ //  sigmoid->UpdateLargestPossibleRegion();
 
   geodesicActiveContour->SetInput(  fastMarching->GetOutput() );
   geodesicActiveContour->SetFeatureImage( sigmoid->GetOutput() );
-  geodesicActiveContour->Update();
+  
+ 
+  try
+  {
+	geodesicActiveContour->UpdateLargestPossibleRegion();
+    geodesicActiveContour->Update();
+  }catch(itk::ExceptionObject&exp)
+  {
+	  string based = "AnglePictureUtility::CurvesLevelSetImage()";
+	  string res = based +exp.GetDescription();
+	  subLog.info(res);
+	  rootLog.info(res);
+	  return;
+  }
   //geodesicActiveContour->GetOutput();curveLevelSet,有时候成功，有时候失败，为什么失败，不知道
   subLog.info("AnglePictureUtility::CurvesLevelSetImage()完成levelset的操作");
   rootLog.info("AnglePictureUtility::CurvesLevelSetImage()完成levelset的操作");
-  thresholder->SetInput( geodesicActiveContour->GetOutput() );
-  
+  thresholder->SetInput( geodesicActiveContour->GetOutput() );  
   thresholder->Update();
     subLog.info("AnglePictureUtility::CurvesLevelSetImage()完成thresholder的操作");
   rootLog.info("AnglePictureUtility::CurvesLevelSetImage()完成thresholder的操作");
