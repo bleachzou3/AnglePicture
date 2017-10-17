@@ -65,6 +65,7 @@
 #include <itkVTKImageToImageFilter.h>
 #include <itkImageToVTKImageFilter.h>
 #include <vtkXMLImageDataWriter.h>
+#include <itkHessianToObjectnessMeasureImageFilter.h>
 
 
 #include <itkCurvatureAnisotropicDiffusionImageFilter.h>
@@ -76,6 +77,10 @@
 #include <itkCurvesLevelSetImageFilter.h>
 #include <log4cpp/Category.hh>
 #include <log4cpp/PropertyConfigurator.hh>
+#include "itkMultiScaleHessianBasedMeasureImageFilter.h"
+#include <itkListSample.h>
+#include "MeanShiftAlgo.h"
+
 extern log4cpp::Category& rootLog;
 extern log4cpp::Category& subLog ;
 
@@ -1177,92 +1182,64 @@ void AnglePictureUtility::SegmentBloodVessels(string inputDirectoryName,string o
 
 }
 
-void   AnglePictureUtility::WatershedSegmentation(string inputDirectoryName,string outputDirectoryName)
+void   AnglePictureUtility::WatershedSegmentation(string inputFileName,string outputFileName)
 {
 	
-  typedef signed short    PixelType;
-  const unsigned int      Dimension = 3;
-  typedef itk::Image< PixelType, Dimension >         ImageType;
-
-  typedef itk::ImageSeriesReader< ImageType >        ReaderType;
-  ReaderType::Pointer reader = ReaderType::New();
-
-  typedef itk::GDCMImageIO       ImageIOType;
-  ImageIOType::Pointer dicomIO = ImageIOType::New();
-  reader->SetImageIO( dicomIO );
-
-  typedef itk::GDCMSeriesFileNames NamesGeneratorType;
-  NamesGeneratorType::Pointer nameGenerator = NamesGeneratorType::New();
-  nameGenerator->SetUseSeriesDetails( true );
-  nameGenerator->AddSeriesRestriction("0008|0021" );
-  nameGenerator->SetDirectory( inputDirectoryName );
 // Software Guide : EndCodeSnippet
+	subLog.info("开始执行void AnglePictureUtility::WatershedSegmentation(string inputFileName,string outputFileName)");
+	rootLog.info("开始执行void AnglePictureUtility::WatershedSegmentation(string inputFileName,string outputFileName)");
   try
     {
-    std::cout << std::endl << "The directory: " << std::endl;
-	std::cout << std::endl << inputDirectoryName << std::endl << std::endl;
-    std::cout << "Contains the following DICOM Series: ";
-    std::cout << std::endl << std::endl;
+   	 vtkSmartPointer<vtkXMLImageDataReader> reader = vtkSmartPointer<vtkXMLImageDataReader>::New();
+	 reader->SetFileName(inputFileName.c_str());
+	 reader->Update();
 
-    typedef std::vector< std::string >    SeriesIdContainer;
-    const SeriesIdContainer & seriesUID = nameGenerator->GetSeriesUIDs();
-    SeriesIdContainer::const_iterator seriesItr = seriesUID.begin();
-    SeriesIdContainer::const_iterator seriesEnd = seriesUID.end();
-    while( seriesItr != seriesEnd )
-      {
-      std::cout << seriesItr->c_str() << std::endl;
-      ++seriesItr;
-      }
 
-    std::string seriesIdentifier;
-  //  if( argc > 3 ) // If no optional series identifier
-      {
-  //    seriesIdentifier = argv[3];
-      }
-    //else
-    //  {
-      seriesIdentifier = seriesUID.begin()->c_str();
-     // }
-// Software Guide : EndCodeSnippet
-    std::cout << std::endl << std::endl;
-    std::cout << "Now reading series: " << std::endl << std::endl;
-    std::cout << seriesIdentifier << std::endl;
-    std::cout << std::endl << std::endl;
+	 	vtkImageData* original = reader->GetOutput();
+	vtkSmartPointer<vtkImageCast> castToFloat = vtkSmartPointer<vtkImageCast>::New();
+	castToFloat->SetInputData(original);
+	castToFloat->SetOutputScalarTypeToFloat();
+	castToFloat->Update();
+	vtkImageData* imageData = castToFloat->GetOutput(); 
+	  	subLog.info("AnglePictureUtility::CurvesLevelSetImage()把图像数据类型从signed short转化到float");
+	rootLog.info("AnglePictureUtility::CurvesLevelSetImage()把图像数据类型从signed short转化到float");
 
-    typedef std::vector< std::string >   FileNamesContainer;
-    FileNamesContainer fileNames;
-    fileNames = nameGenerator->GetFileNames( seriesIdentifier );
 
-    reader->SetFileNames( fileNames );
+	 const unsigned int Dimension = 3;
+	 typedef float                  PixelType;
+     typedef itk::Image< PixelType, Dimension > ImageType;
+ 
 
-    try
-      {
-      reader->Update();
-      }
-    catch (itk::ExceptionObject &ex)
-      {
-      std::cout << ex << std::endl;
-      return ;
-      }
+	 typedef itk::VTKImageToImageFilter< ImageType > FilterType;
+     FilterType::Pointer filter = FilterType::New();
+	 
+	 filter->SetInput( imageData );
+	 filter->Update();
+	 ImageType* image = filter->GetOutput();
 
-	ImageType* image = reader->GetOutput();
 	//解决图像的大小
- typedef itk::GradientMagnitudeImageFilter<
-	 ImageType, ImageType >  FilterType;
-  FilterType::Pointer gradientFilter = FilterType::New();
-  gradientFilter->SetInput( image );
-  gradientFilter->Update();
-  cout << "11111111111111111111111111111" << endl;
+   typedef   itk::GradientMagnitudeRecursiveGaussianImageFilter<
+	   ImageType,
+	   ImageType
+                                                          > GradientMagnitudeFilterType;
+  GradientMagnitudeFilterType::Pointer gradienMagnitudeFilter = GradientMagnitudeFilterType::New();
+  gradienMagnitudeFilter->SetInput(image);
+  gradienMagnitudeFilter->Update();
+    	subLog.info("void AnglePictureUtility::WatershedSegmentation()梯度求解结束");
+	rootLog.info("void AnglePictureUtility::WatershedSegmentation()梯度求解结束");
+
 
 	 typedef  itk::WatershedImageFilter<
 		 ImageType
                                             > WatershedFilterType;
   WatershedFilterType::Pointer watershedFilter = WatershedFilterType::New();
-  watershedFilter->SetInput( gradientFilter->GetOutput() );
+  watershedFilter->SetInput( gradienMagnitudeFilter->GetOutput() );
   watershedFilter->SetThreshold( 300 );
   watershedFilter->SetLevel(     500 );
-   watershedFilter->Update();
-    cout << "11111111111111111111111111111111111111" << endl;
+  watershedFilter->Update();
+  	subLog.info("void AnglePictureUtility::WatershedSegmentation()执行结束分水岭算法");
+	rootLog.info("void AnglePictureUtility::WatershedSegmentation()执行结束分水岭算法");
+ 
   //  Instantiate the filter that will encode the label image
   //  into a color image (random color attribution).
   //
@@ -1270,7 +1247,7 @@ void   AnglePictureUtility::WatershedSegmentation(string inputDirectoryName,stri
 	  unsigned long
                                                     > ColorMapFunctorType;
   typedef WatershedFilterType::OutputImageType  LabeledImageType;
-  typedef itk::RGBPixel<unsigned short>      RGBPixelType;
+  typedef itk::RGBPixel<unsigned char>      RGBPixelType;
   typedef itk::Image< RGBPixelType,       Dimension >  RGBImageType;
   typedef itk::UnaryFunctorImageFilter<
                                 LabeledImageType,
@@ -1281,7 +1258,29 @@ void   AnglePictureUtility::WatershedSegmentation(string inputDirectoryName,stri
  
   colorMapFilter->SetInput(  watershedFilter->GetOutput() );
   colorMapFilter->Update();
-  cout << "222222222222222222222222222222222222222222222222222222222222222222" << endl;
+  	subLog.info("开始执行void AnglePictureUtility::WatershedSegmentation()从标签图像转成rgb图像");
+	rootLog.info("开始执行void AnglePictureUtility::WatershedSegmentation()从标签图像转成rgb图像");
+    typedef  itk::ImageFileWriter< RGBImageType  >        WriterType;
+	 WriterType::Pointer writer = WriterType::New();
+	 writer->SetInput(colorMapFilter->GetOutput());
+	 writer->Update();
+  //colorMapFilter->GetOutput();
+
+  //这里缺一个什么样的分析，
+
+  
+  /**
+  typedef itk::ImageToVTKImageFilter< ImageType > FilterTypeToVtk;
+  FilterTypeToVtk::Pointer filterTovtk = FilterTypeToVtk::New();
+  filterTovtk->SetInput( watershedFilter->GetOutput() );
+  filterTovtk->Update();
+ 
+ 
+  vtkSmartPointer<vtkXMLImageDataWriter> writer = vtkSmartPointer<vtkXMLImageDataWriter>::New();
+  writer->SetFileName(outputFileName.c_str());
+  writer->SetInputData(filterTovtk->GetOutput());
+  writer->Update();
+ */
 
 
 
@@ -1324,33 +1323,7 @@ void   AnglePictureUtility::WatershedSegmentation(string inputDirectoryName,stri
 
 
 
-	itksys::SystemTools::MakeDirectory( outputDirectoryName );
-  typedef signed short    OutputPixelType;
-  const unsigned int      OutputDimension = 2;
-  typedef itk::Image< RGBPixelType, OutputDimension >    Image2DType;
-	 typedef itk::ImageSeriesWriter<
-		 RGBImageType,Image2DType>  SeriesWriterType;
 
-  SeriesWriterType::Pointer seriesWriter = SeriesWriterType::New();
-  seriesWriter->SetInput(colorMapFilter->GetOutput());
-  seriesWriter->SetImageIO( dicomIO );
-
-  nameGenerator->SetOutputDirectory( outputDirectoryName );
-  seriesWriter->SetFileNames( nameGenerator->GetOutputFileNames() );
-
-  seriesWriter->SetMetaDataDictionaryArray(
-                        reader->GetMetaDataDictionaryArray() );
-
-  try
-    {
-    seriesWriter->Update();
-    }
-  catch( itk::ExceptionObject & excp )
-    {
-    std::cerr << "Exception thrown while writing the series " << std::endl;
-    std::cerr << excp << std::endl;
-    return ;
-    }
 
 
 
@@ -1386,7 +1359,7 @@ void   AnglePictureUtility::WatershedSegmentation(string inputDirectoryName,stri
 
 
 }
-
+//这一个也是hessian但是针对的是SegmentBloodVessels这个例子，不是multiscale
  void AnglePictureUtility::SegmentBloodVesselsFromVti(string fileName,string outputFileName,double sigma,double alpha1,double alpha2)
  {
 	 vtkSmartPointer<vtkXMLImageDataReader> reader = vtkSmartPointer<vtkXMLImageDataReader>::New();
@@ -1411,7 +1384,7 @@ void   AnglePictureUtility::WatershedSegmentation(string inputDirectoryName,stri
   HessianFilterType::Pointer hessianFilter = HessianFilterType::New();
     if( sigma )
     {
-    //hessianFilter->SetSigma( 1  );
+    hessianFilter->SetSigma( 1  );
     }
   hessianFilter->SetInput( image );
   hessianFilter->Update();
@@ -1425,11 +1398,11 @@ void   AnglePictureUtility::WatershedSegmentation(string inputDirectoryName,stri
   
   if( alpha1 )
     {
-    //vesselnessFilter->SetAlpha1( 1  );
+    vesselnessFilter->SetAlpha1( 0.5  );
     }
   if( alpha2 )
     {
-    //vesselnessFilter->SetAlpha2(  1 );
+    vesselnessFilter->SetAlpha2(  2.0 );
     }
    
   vesselnessFilter->Update();
@@ -1735,7 +1708,7 @@ void   AnglePictureUtility::WatershedSegmentation(string inputDirectoryName,stri
   //  contour to be.
 
   //这个值如何选择,spacing,是多少，我可以参照不同数量级，
-  const double initialDistance = 0.05;
+  const double initialDistance = 0.002;
   NodeType node;
   const double seedValue = - initialDistance;
   node.SetValue( seedValue );
@@ -1776,16 +1749,19 @@ void   AnglePictureUtility::WatershedSegmentation(string inputDirectoryName,stri
 
 
   sigmoid->SetInput( gradientMagnitude->GetOutput() );
+  sigmoid->UpdateLargestPossibleRegion();
   sigmoid->Update();
   subLog.info("AnglePictureUtility::CurvesLevelSetImage()完成图像sigmoid的操作");
   rootLog.info("AnglePictureUtility::CurvesLevelSetImage()完成图像sigmoid的操作");
 
+  fastMarching->UpdateLargestPossibleRegion();
   fastMarching->Update();
   subLog.info("AnglePictureUtility::CurvesLevelSetImage()  完成图像fastMarching操作");
   rootLog.info("AnglePictureUtility::CurvesLevelSetImage() 完成图像fastMarching的操作");
 
 
    sigmoid->GetOutput()->SetSpacing(fastMarching->GetOutput()->GetSpacing());
+ // fastMarching->GetOutput()->SetSpacing(sigmoid->GetOutput()->GetSpacing());
    //sigmoid->GetOutput()->SetRequestedRegion(sigmoid->GetOutput()->GetLargestPossibleRegion());
    //fastMarching->GetOutput()->SetRequestedRegion(fastMarching->GetOutput()->GetLargestPossibleRegion());
    //sigmoid->GetOutput()->SetRequestedRegion(fastMarching->GetOutput()->GetRequestedRegion());
@@ -1796,14 +1772,26 @@ void   AnglePictureUtility::WatershedSegmentation(string inputDirectoryName,stri
 
   geodesicActiveContour->SetInput(  fastMarching->GetOutput() );
   geodesicActiveContour->SetFeatureImage( sigmoid->GetOutput() );
-  
- 
+  InternalImageType*image = InternalImageType::New();
+ // image->GetRequestedRegion();
+ //看一下requeset region 和 largest region
   try
   {
-	geodesicActiveContour->UpdateLargestPossibleRegion();
+	  if(geodesicActiveContour->GetOutput()->VerifyRequestedRegion())
+	  {
+	  }else
+	  {
+		  subLog.info("AnglePictureUtility::CurvesLevelSetImage() geodesicActiveContour无效region");
+		  rootLog.info("AnglePictureUtility::CurvesLevelSetImage() geodesicActiveContour无效region");
+		  return;
+	  }
+	//geodesicActiveContour->UpdateLargestPossibleRegion();
+	//  geodesicActiveContour->GetOutput()->SetRequestedRegion(sigmoid->GetOutput()->GetLargestPossibleRegion());
+	  //geodesicActiveContour->UpdateOutputInformation();
     geodesicActiveContour->Update();
   }catch(itk::ExceptionObject&exp)
   {
+	  cout << exp << endl;
 	  string based = "AnglePictureUtility::CurvesLevelSetImage()";
 	  string res = based +exp.GetDescription();
 	  subLog.info(res);
@@ -1986,3 +1974,151 @@ void   AnglePictureUtility::WatershedSegmentation(string inputDirectoryName,stri
   */
 
  }
+
+ void AnglePictureUtility::SegmentBloodVesselsWithMultiScaleHessianBasedMeasure(string inputFileName,string outputFileName,double sigmaMinimum,double sigmaMaximum,unsigned int numberOfSigmaSteps )
+ {
+     vtkSmartPointer<vtkXMLImageDataReader> reader = vtkSmartPointer<vtkXMLImageDataReader>::New();
+	 reader->SetFileName(inputFileName.c_str());
+	 reader->Update();
+	 const unsigned int Dimension = 3;
+	 typedef signed short                    PixelType;
+     typedef itk::Image< PixelType, Dimension > ImageType;
+	 typedef itk::VTKImageToImageFilter< ImageType > FilterType;
+     FilterType::Pointer filter = FilterType::New();
+	 reader->Update();
+	 filter->SetInput( reader->GetOutput() );
+	 filter->Update();
+	 ImageType* image = filter->GetOutput();
+	 /**
+	 double sigmaMinimum = 1.0;
+	 double sigmaMaximum = 10.0;
+	 unsigned int numberOfSigmaSteps = 10;
+	 */
+
+	
+	 
+
+
+
+
+
+
+
+
+
+
+
+
+  typedef SymmetricSecondRankTensor< double, Dimension > HessianPixelType;
+  typedef Image< HessianPixelType, Dimension >           HessianImageType;
+  typedef HessianToObjectnessMeasureImageFilter< HessianImageType, ImageType >
+    ObjectnessFilterType;
+  ObjectnessFilterType::Pointer objectnessFilter = ObjectnessFilterType::New();
+  objectnessFilter->SetBrightObject( false );
+  objectnessFilter->SetScaleObjectnessMeasure( false );
+  objectnessFilter->SetAlpha( 0.5 );
+  objectnessFilter->SetBeta( 1.0 );
+  objectnessFilter->SetGamma( 5.0 );
+
+  typedef MultiScaleHessianBasedMeasureImageFilter< ImageType, HessianImageType, ImageType >
+    MultiScaleEnhancementFilterType;
+  MultiScaleEnhancementFilterType::Pointer multiScaleEnhancementFilter =
+    MultiScaleEnhancementFilterType::New();
+  multiScaleEnhancementFilter->SetInput( image );
+  multiScaleEnhancementFilter->SetHessianToMeasureFilter( objectnessFilter );
+  multiScaleEnhancementFilter->SetSigmaStepMethodToLogarithmic();
+  multiScaleEnhancementFilter->SetSigmaMinimum( sigmaMinimum );
+  multiScaleEnhancementFilter->SetSigmaMaximum( sigmaMaximum );
+  multiScaleEnhancementFilter->SetNumberOfSigmaSteps( numberOfSigmaSteps );
+
+  multiScaleEnhancementFilter->Update();
+  /*
+  typedef itk::Image< unsigned char, Dimension > OutputImageType;
+  typedef itk::RescaleIntensityImageFilter< ImageType, OutputImageType >
+    RescaleFilterType;
+  RescaleFilterType::Pointer rescaleFilter = RescaleFilterType::New();
+  rescaleFilter->SetInput( multiScaleEnhancementFilter->GetOutput() );
+  typedef itk::ImageFileWriter< OutputImageType > WriterType;
+  WriterType::Pointer writer = WriterType::New();
+  writer->SetFileName( outputFileName );
+  writer->SetInput( rescaleFilter->GetOutput() );
+  try
+    {
+    writer->Update();
+    }
+  catch( itk::ExceptionObject & error )
+    {
+    std::cerr << "Error: " << error << std::endl;
+   
+    }
+	*/
+
+      typedef itk::ImageToVTKImageFilter< ImageType > FilterTypeToVtk;
+  FilterTypeToVtk::Pointer filterTovtk = FilterTypeToVtk::New();
+  filterTovtk->SetInput(multiScaleEnhancementFilter->GetOutput());
+  filterTovtk->Update();
+
+  vtkSmartPointer<vtkXMLImageDataWriter> writer = vtkSmartPointer<vtkXMLImageDataWriter>::New();
+  writer->SetFileName(outputFileName.c_str());
+  writer->SetInputData(filterTovtk->GetOutput());
+  writer->Update();
+	
+	
+  
+ }
+
+void AnglePictureUtility::segmentMeanShiftClustering(string inputFileName,string outFileName,
+													 int _radius,float _grayDistance, int _numOfCenters,
+													 int _itertionNums,int _clusterPointSize)
+{
+	 subLog.info("开始执行void AnglePictureUtility::segmentMeanShiftClustering(string inputFileName,string outFileName)");
+	 rootLog.info("开始执行void AnglePictureUtility::segmentMeanShiftClustering(string inputFileName,string outFileName)");
+	 vtkSmartPointer<vtkXMLImageDataReader> reader = vtkSmartPointer<vtkXMLImageDataReader>::New();
+	 reader->SetFileName(inputFileName.c_str());
+	 reader->Update();
+
+
+	 //这些都是测试代码
+	 vtkImageData* imageTest = reader->GetOutput();
+	 int extent[6];
+	 imageTest->GetExtent(extent);
+
+	 cout << extent[0] <<" "<< extent[1]<<" "<<extent[2]<<" "<<extent[3]<<" "<<extent[4]<<" "<< extent[5]<<endl;
+
+
+	 const unsigned int Dimension = 3;
+	 typedef signed short                    PixelType;
+     typedef itk::Image< PixelType, Dimension > ImageType;
+ 
+
+	 typedef itk::VTKImageToImageFilter< ImageType > FilterType;
+     FilterType::Pointer filter = FilterType::New();
+	 reader->Update();
+	 filter->SetInput( reader->GetOutput() );
+	 filter->Update();
+	 ImageType* image = filter->GetOutput();
+	 
+	 subLog.info("void AnglePictureUtility::segmentMeanShiftClustering(string inputFileName,string outFileName)图像载入完成");
+	 rootLog.info("void AnglePictureUtility::segmentMeanShiftClustering(string inputFileName,string outFileName)图像载入完成");
+	 MeanShiftAlgo algo(_radius,_grayDistance,_numOfCenters,_itertionNums,_clusterPointSize);
+	 algo.filter(image,0);
+	 subLog.info("void AnglePictureUtility::segmentMeanShiftClustering(string inputFileName,string outFileName)mean shift算法完成");
+	 rootLog.info("void AnglePictureUtility::segmentMeanShiftClustering(string inputFileName,string outFileName)mean shift算法完成");
+
+
+	 typedef itk::ImageToVTKImageFilter< ImageType > FilterTypeToVtk;
+     FilterTypeToVtk::Pointer filterTovtk = FilterTypeToVtk::New();
+	 filterTovtk->SetInput( image );
+     filterTovtk->Update();
+
+     vtkSmartPointer<vtkXMLImageDataWriter> writer = vtkSmartPointer<vtkXMLImageDataWriter>::New();
+	 writer->SetFileName(outFileName.c_str());
+     writer->SetInputData(filterTovtk->GetOutput());
+     writer->Update();
+
+
+
+
+ 
+  
+}

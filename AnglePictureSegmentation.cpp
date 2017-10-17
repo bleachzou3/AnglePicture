@@ -35,6 +35,7 @@
 #include <vtkTriangleFilter.h>
 #include <vtkExtractEdges.h>
 #include <DisplayVoxelUtility.h>
+#include "MeanShiftAlgo.h"
 int main(int argc, char* argv[])
 {
 
@@ -54,10 +55,16 @@ int main(int argc, char* argv[])
 	//AnglePictureUtility::coronaryVoxelRender("E:\\patientData\\WU_AMAO_SEGMENTED");
 	//AnglePictureUtility::showHistogram("E:\\patientData\\WU_AMAO");
 	//AnglePictureUtility::SegmentBloodVessels("E:\\patientData\\WU_AMAO","E:\\patientData\\WU_AMAO_SegmentBloodVessels",0,0,0);
-	//AnglePictureUtility::WatershedSegmentation("E:\\patientData\\WU_AMAO","E:\\patientData\\WU_AMAO_WatershedSegmentation");
-	//AnglePictureUtility::SegmentBloodVesselsFromVti("E:\\patientData\\WU_AMAO_image_volume_voi.vti","E:\\patientData\\WU_AMAO_image_volume.vti",0,0,0);
+	//AnglePictureUtility::WatershedSegmentation("E:\\patientData\\WU_AMAO_image_volume_voi.vti","E:\\patientData\\WU_AMAO_image_volume_voi_WatershedSegmentation");
+	//#AnglePictureUtility::SegmentBloodVesselsFromVti("E:\\patientData\\WU_AMAO_image_volume_voi.vti","E:\\patientData\\hessian_WU_AMAO_image_volume_2.vti",0,0,0);
 	//DisplayVoxelUtility::displaySegmentBloodVesselsFromVti("E:\\patientData\\WU_AMAO_image_volume.vti");
-	AnglePictureUtility::CurvesLevelSetImage("E:\\patientData\\WU_AMAO_image_volume_voi.vti",190,33,69);
+	//AnglePictureUtility::CurvesLevelSetImage("E:\\patientData\\WU_AMAO_image_volume_voi.vti",120,111,182);
+	
+	//AnglePictureUtility::SegmentBloodVesselsWithMultiScaleHessianBasedMeasure("E:\\patientData\\WU_AMAO_image_volume_voi.vti","E:\\patientData\\WU_AMAO_SegmentBloodVesselsWithMultiScaleHessianBasedMeasure.vti",1,10.0,10);
 
-  return EXIT_SUCCESS;
+
+	//公司在跑实验室的数据的时候，一定会有某个参考标准，而我这里的确是没有，我现在只想跑出来，看看效果
+	AnglePictureUtility::segmentMeanShiftClustering("E:\\patientData\\WU_AMAO_image_volume_voi.vti","E:\\patientData\\WU_AMAO_segmentMeanShiftClustering.vti",10,20,10,30,1000);
+
+    return EXIT_SUCCESS;
 }

@@ -67,6 +67,15 @@ public:
 	*/
 	static void CurvesLevelSetImage(string inputFileName,int x,int y,int z);
 	static const string  OBLIQUE_NORMAL;
-	static const string  MAXIMUM_INSCRIBED_SPHERE_RADIUS;                          
+	static const string  MAXIMUM_INSCRIBED_SPHERE_RADIUS;  
+
+	//这个是多尺度
+	static void SegmentBloodVesselsWithMultiScaleHessianBasedMeasure(string inputFileName,string outputFileName,double sigmaMinimum,double sigmaMaximum,unsigned int numberOfSigmaSteps);
+
+
+	/**
+	*mean-shift用于图像切割
+	*/
+	static void segmentMeanShiftClustering(string inputFileName,string outFileName,int _radius,float _grayDistance, int _numOfCenters,int _itertionNums,int _clusterPointSize);
 };
 #endif

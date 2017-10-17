@@ -5,8 +5,8 @@ PROJECT(AnglePicture)
 
 find_package(ITK REQUIRED NO_MODULE)
 
-#message(STATUS ${ITK_DIR})
-#message("hhhhhhhhhhhhhhhhhhhhh")
+
+
 find_package(VTK REQUIRED NO_MODULE)
 #set(VTK_DIR D:/VTK_H/lib/cmake/vtk-6.3)
 #set (VTK_USE_FILE D:/VTK_H/lib/cmake/vtk-6.3/UseVTK.cmake)
@@ -22,8 +22,9 @@ include_directories(
   ${CMAKE_CURRENT_SOURCE_DIR}  
 )
 set(CMAKE_AUTOMOC ON)
-set(Srcs AnglePicture.cpp ONB.cpp InteractorStyleRollBall.cpp AnglePictureUtility.cpp DisplayVoxelUtility.cpp AnglePictureSegmentation.cpp)
-set(Hdrs ONB.h Vector3.h InteractorStyleRollBall.h AnglePictureUtility.h DisplayVoxelUtility.h)
+#set(Srcs AnglePicture.cpp ONB.cpp InteractorStyleRollBall.cpp AnglePictureUtility.cpp DisplayVoxelUtility.cpp AnglePictureSegmentation.cpp)
+set(Srcs  ONB.cpp InteractorStyleRollBall.cpp AnglePictureUtility.cpp DisplayVoxelUtility.cpp AnglePictureSegmentation.cpp)
+set(Hdrs ONB.h Vector3.h InteractorStyleRollBall.h AnglePictureUtility.h DisplayVoxelUtility.h MeanPoint.h MeanShiftAlgo.h Common.h CommonUtility.h MeanShiftAlgo.h)
 set(LOGs log4cpp.conf )
 set(LinkedLog log4cpp)
 
